@@ -16,13 +16,13 @@ system.beforeEvents.startup.subscribe((event: StartupEvent) => {
 
 import { PlayerCache } from "./player/player_cache";
 import { BuildTools } from "./build";
-import { CustomPlayer } from "./player/player_constructor";
+import { CustomPlayer, CustomPlayerCache } from "./player/player_constructor";
 world.afterEvents.worldLoad.subscribe(() => {
     PlayerCache.initialise();
     BuildTools.initialise();
 
     // Register a callback to occur each tick using this method to avoid circular dependency issues:
-    PlayerCache.registerPlayerTickCallback((customPlayer: CustomPlayer) => {
+    PlayerCache.registerPlayerTickCallback((customPlayer: CustomPlayer, playerCache: CustomPlayerCache) => {
 
     });
 });

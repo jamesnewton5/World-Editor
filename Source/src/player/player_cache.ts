@@ -1,8 +1,9 @@
 import { InputPermissionCategory, Player, system, world } from "@minecraft/server";
-import { createCustomPlayer, CustomPlayer } from "./player_constructor";
+import { createCustomPlayer, CustomPlayer, CustomPlayerCache } from "./player_constructor";
 import { Debug } from "../debug";
 
-type PlayerTickCallback = (customPlayer: CustomPlayer) => void;
+
+type PlayerTickCallback = (customPlayer: CustomPlayer, playerCache: CustomPlayerCache) => void;
 
 export class PlayerCache extends Debug {
     private static map: Map<string, CustomPlayer> = new Map();
@@ -27,7 +28,7 @@ export class PlayerCache extends Debug {
         system.runInterval(() => {
             for (const customPlayer of this.map.values()) {
                 for (const callback of this.playerTickCallbacks) {
-                    callback(customPlayer);
+                    callback(customPlayer, this.map);
                 }
             }
         }, 1);

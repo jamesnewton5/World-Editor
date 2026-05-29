@@ -3,6 +3,7 @@ import { CustomPlayerData, CustomPlayerPersistentData, customPlayerDataTemplate 
 import { queueMicrotask } from "../general";
 
 export type CustomPlayer = Player & CustomPlayerData;
+export type CustomPlayerCache = Map<string, CustomPlayer>;
 export function createCustomPlayer(player: Player): CustomPlayer {
     // Create data
     const defaultCustomPlayerData = { ...customPlayerDataTemplate };
