@@ -1,7 +1,7 @@
 import { CustomCommandParamType } from "@minecraft/server";
 import { CommandPermissionLevel } from "../data";
 import { BuildFunctions } from "./functions";
-import { PACK_ID } from "../../main";
+import { PACK_ID } from "../../data";
 
 export const buildCommands = {
     setCommand: {
@@ -22,13 +22,13 @@ export const buildCommands = {
         },
         callbackFunction: BuildFunctions.prototype.runReplaceCommand
     },
-    gmaskCommand: {
+    maskCommand: {
         customCommand: {
-            name: `${PACK_ID}:gmask`,
+            name: `${PACK_ID}:mask`,
             description: "Select a block to use as a mask for operations.",
             permissionLevel: CommandPermissionLevel.Admin,
             optionalParameters: [{ type: CustomCommandParamType.BlockType, name: "blockType" }]
         },
-        callbackFunction: BuildFunctions.prototype.runGmaskCommand
+        callbackFunction: BuildFunctions.prototype.runMaskCommand
     }
 }

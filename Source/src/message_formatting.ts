@@ -1,5 +1,6 @@
 // Formatting for consistent info/warning message styles across the addon
-import { system, world, Player } from "@minecraft/server";
+import { world, Player } from "@minecraft/server";
+import { Debug } from "./debug";
 
 export enum MessageType {
     Info = "Info",
@@ -19,13 +20,7 @@ const messagePrefixes: Partial<Record<MessageType, string>> = {
     [MessageType.GameWarning]: "§r§c[>]§7 "
 };
 
-export class AddonMessage {
-    private static debug = false;
-    private static printDebug(message: string): void {
-        if (!this.debug) return;
-        console.warn("§r (Tick " + String(system.currentTick) + ")§7 AddonMessage: " + message);
-    }
-
+export class AddonMessage extends Debug {
     private static formatMessage(message: string): string {
         if (message.length < 1) return message;
 

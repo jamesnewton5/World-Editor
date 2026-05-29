@@ -28,18 +28,18 @@ export class BuildFunctions {
         BuildTools.replace(customPlayer, blockType, replacementBlockType);
     }
 
-    runGmaskCommand(origin: CustomCommandOrigin, blockType: BlockType | undefined) {
+    runMaskCommand(origin: CustomCommandOrigin, blockType: BlockType | undefined) {
         const player = checkIfPlayer(origin);
         if (!player) return;
         const customPlayer = PlayerCache.get(player);
         if (customPlayer === undefined) return;
         const blockTypeId = blockType?.id;
-        customPlayer._tempData.gmask = blockTypeId;
+        customPlayer._tempData.mask = blockTypeId;
         system.run(() => {
             if (blockTypeId === undefined) {
-                AddonMessage.send(customPlayer, "Gmask removed", MessageType.Info);
+                AddonMessage.send(customPlayer, "Mask reset", MessageType.Info);
             } else {
-                AddonMessage.send(customPlayer, `Gmask set to ${blockTypeId}`, MessageType.Info);
+                AddonMessage.send(customPlayer, `Mask set to ${blockTypeId}`, MessageType.Info);
             }
         });
     }

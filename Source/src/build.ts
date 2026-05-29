@@ -86,8 +86,8 @@ export class BuildTools {
         const dimension = customPlayer.dimension;
         await loadVolume(dimension, volume);
 
-        const gmask = customPlayer._tempData.gmask;
-        const includeTypes = (gmask !== undefined ? [gmask] : [])
+        const mask = customPlayer._tempData.mask;
+        const includeTypes = (mask !== undefined ? [mask] : [])
 
         const volumeHeight = volume.getSpan().y;
         const yLevel = volume.getMax().y;
@@ -105,10 +105,10 @@ export class BuildTools {
         const dimension = customPlayer.dimension;
         await loadVolume(dimension, volume);
 
-        const gmask = customPlayer._tempData.gmask;
-        const includeTypes = (gmask !== undefined ? [gmask] : []);
+        const mask = customPlayer._tempData.mask;
+        const includeTypes = (mask !== undefined ? [mask] : []);
         if (includeTypes.length > 0 && !includeTypes.includes(blockTypeId)) {
-            AddonMessage.send(customPlayer, "Command conflicts with current Gmask", MessageType.Error);
+            AddonMessage.send(customPlayer, "Command conflicts with current mask", MessageType.Error);
             return;
         }
 

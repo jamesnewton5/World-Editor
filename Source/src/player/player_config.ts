@@ -9,7 +9,7 @@ export const customPlayerDataTemplate: CustomPlayerData = {
     _tempData: {
         position1: undefined,
         position2: undefined,
-        gmask: undefined,
+        mask: undefined,
         lastInfoMessageTick: 0
     },
     _messageCooldown: function messageCooldown() {
@@ -28,7 +28,7 @@ export type CustomPlayerPersistentData = {
 export type CustomPlayerTempData = {
     position1: Vector3 | undefined;
     position2: Vector3 | undefined;
-    gmask: string | undefined;
+    mask: string | undefined;
     lastInfoMessageTick: number;
 };
 export type CustomPlayerData = {
