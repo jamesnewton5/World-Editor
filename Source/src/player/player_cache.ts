@@ -2,8 +2,11 @@ import { InputPermissionCategory, Player, system, world } from "@minecraft/serve
 import { createCustomPlayer, CustomPlayer } from "./player_constructor";
 import { Debug } from "../debug";
 
+type PlayerTickCallback = (customPlayer: CustomPlayer) => void;
+
 export class PlayerCache extends Debug {
     private static map: Map<string, CustomPlayer> = new Map();
+    private static playerTickCallbacks: Set<PlayerTickCallback> = new Set();
     private static initialised = false;
 
     public static initialise() {
@@ -22,11 +25,17 @@ export class PlayerCache extends Debug {
         });
         // Tick per player
         system.runInterval(() => {
-            for (const [playerId, customPlayer] of this.map) {
-                // Code here
+            for (const customPlayer of this.map.values()) {
+                for (const callback of this.playerTickCallbacks) {
+                    callback(customPlayer);
+                }
             }
         }, 1);
         this.initialised = true;
+    }
+
+    public static registerPlayerTickCallback(callback: PlayerTickCallback) {
+        this.playerTickCallbacks.add(callback);
     }
 
     public static get(playerOrPlayerId: Player | string): CustomPlayer | undefined {
