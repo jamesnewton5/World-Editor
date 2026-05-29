@@ -1,0 +1,24 @@
+{
+	"$schema": "https://raw.githubusercontent.com/Bedrock-OSS/regolith-schemas/main/config/v1.6.json",
+	"author": "Enzio",
+	"name": "World Editor",
+	"packs": {
+		"behaviorPack": "./packs/BP",
+		"resourcePack": "./packs/RP"
+	},
+	"regolith": {
+		"dataPath": "./packs/data",
+		"filterDefinitions": {},
+		"formatVersion": "1.6.0",
+		"profiles": {
+			"default": {
+				"export": {
+					"bpPath": "%APPDATA%/Minecraft Bedrock/Users/Shared/games/com.mojang/development_behavior_packs/world-editor-bp",
+					"rpPath": "%APPDATA%/Minecraft Bedrock/Users/Shared/games/com.mojang/development_resource_packs/world-editor-rp",
+					"target": "exact"
+				},
+				"filters": []
+			}
+		}
+	}
+}

@@ -1,0 +1,43 @@
+{
+  "format_version": 2,
+  "metadata": {
+    "product_type": "addon"
+  },
+  "header": {
+    "description": "A replica of the WorldEdit mod/plugin, for Minecraft Bedrock Edition",
+    "name": "World-Editor RP",
+    "uuid": "6e2940b1-6772-4889-8aa5-02fd4d74f6d7",
+    "min_engine_version": [
+      1,
+      21,
+      80
+    ],
+    "version": [
+      1,
+      0,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "d1320f99-41f3-44fd-b3f2-1378f09fe688",
+      "version": [
+        1,
+        0,
+        0
+      ],
+      "description": "A replica of the WorldEdit mod/plugin, for Minecraft Bedrock Edition"
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "5d4009be-9642-4e35-a016-4a0fb62285b6",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}
