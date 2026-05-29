@@ -5,6 +5,7 @@ import { PACK_NAME } from "./data";
 // ----------------------------------------------------------------
 export const debugSettingsRecords: Record<string, boolean> = {
     main: true,
+    PlayerCache: true,
     AddonMessage: true
 };
 
@@ -17,6 +18,6 @@ export class Debug {
     public static printDebug = function (this: any, message: string): void { // [i] First parameter "this" will be ignored by TS compiler
         const name = this.name;
         if (!debugSettingsRecords[name]) return;
-        console.info(`§r§7 ${system.currentTick.toString()}:§f  ${PACK_NAME} ${name[0] === "_" ? name.replace("_", "") : name} - ${message}`);
+        console.info(`§r§7 ${system.currentTick.toString()}§f [${PACK_NAME}] ${name[0] === "_" ? name.replace("_", "") : name} - ${message}`);
     }
 }

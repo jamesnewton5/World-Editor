@@ -1,7 +1,8 @@
 import { InputPermissionCategory, Player, system, world } from "@minecraft/server";
 import { createCustomPlayer, CustomPlayer } from "./player_constructor";
+import { Debug } from "../debug";
 
-export class PlayerCache {
+export class PlayerCache extends Debug {
     private static map: Map<string, CustomPlayer> = new Map();
     private static initialised = false;
 
@@ -17,6 +18,7 @@ export class PlayerCache {
         // Remove players that leave
         world.afterEvents.playerLeave.subscribe((event) => {
             this.map.delete(event.playerId);
+            this.printDebug(`removed ${event.playerName}`);
         });
         // Tick per player
         system.runInterval(() => {
@@ -37,7 +39,8 @@ export class PlayerCache {
         if (!player.isValid) return;
         this.resetPlayer(player);
         const customPlayer = createCustomPlayer(player);
-        this.map.set(player.id, customPlayer);
+        this.map.set(customPlayer.id, customPlayer);
+        this.printDebug(`added ${customPlayer.nameTag}`);
     }
 
     /** Reset camera, control scheme, HUD visibility, and input permissions */
