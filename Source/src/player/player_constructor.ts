@@ -1,12 +1,12 @@
 import { Player } from "@minecraft/server";
 import { CustomPlayerData, CustomPlayerPersistentData, customPlayerDataTemplate } from "./player_config";
-import { queueMicrotask } from "../general";
+import { deepClone, queueMicrotask } from "../general";
 
 export type CustomPlayer = Player & CustomPlayerData;
 export type CustomPlayerCache = Map<string, CustomPlayer>;
 export function createCustomPlayer(player: Player): CustomPlayer {
     // Create data
-    const defaultCustomPlayerData = { ...customPlayerDataTemplate };
+    const defaultCustomPlayerData = deepClone(customPlayerDataTemplate);
     const storedPersistentData = retrievePersistentData(player);
 
     const customPlayerData: CustomPlayerData = {
@@ -61,12 +61,10 @@ function retrievePersistentData(player: Player): CustomPlayerPersistentData {
 
 function validateData(persistentData: CustomPlayerPersistentData) {
     const validatedData: any = {};
-    let wasValid = true;
     for (let [key, defaultValue] of Object.entries(customPlayerDataTemplate._persistentData)) {
         const valueToCheck = (persistentData as any)[key];
         if (typeof defaultValue !== typeof valueToCheck) {
             validatedData[key] = defaultValue;
-            wasValid = false;
         } else {
             validatedData[key] = valueToCheck;
         }

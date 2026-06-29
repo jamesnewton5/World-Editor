@@ -7,6 +7,7 @@ type Vector3 = {
 export type Edge = [Vector3, Vector3];
 export type Triangle = [Vector3, Vector3, Vector3];
 export type Tetrahedron = [Triangle, Triangle, Triangle, Triangle];
+export type Capsule = { startLocation: Vector3; endLocation: Vector3; radius: number };
 
 export class Geo3D {
 	public static createTetrahedron(edge1: Edge, edge2: Edge): Tetrahedron {
@@ -21,30 +22,46 @@ export class Geo3D {
 }
 
 export class VectorMath {
-	private static toRad = 0.0174533;
-	private static toDeg = 57.2957795;
+	public static TO_RAD = 0.0174533;
+	public static TO_DEG = 57.2957795;
 	private static min = Math.min;
 	private static max = Math.max;
 	private static cos = Math.cos;
 	private static sin = Math.sin;
 	private static acos = Math.acos;
 	private static asin = Math.asin;
+	public static FLAT_VECTOR = { x: 1, y: 0, z: 1 };
+	public static VERTICAL_VECTOR = { x: 0, y: 1, z: 0 };
+	public static LOCAL_FORWARD_VECTOR = { x: 0, y: 0, z: -1 };
 
 	private static getVectorFromVectorOrNumber(vector: Vector3 | number) {
 		if (typeof vector === "number") return { x: vector, y: vector, z: vector };
 		return vector;
 	}
 
-	public static equals(vector1: Vector3, vector2: Vector3) {
-		return (
-			vector1.x == vector2.x &&
-			vector1.y == vector2.y &&
-			vector1.z == vector2.z
-		);
+	private static clamp(input: number, min: number, max: number) {
+		return Math.min(Math.max(input, min), max);
+	}
+
+	public static equals(vector1: Vector3, vector2: Vector3, tolerance: number = 0) {
+		if (tolerance === 0) {
+			return (
+				vector1.x == vector2.x &&
+				vector1.y == vector2.y &&
+				vector1.z == vector2.z
+			);
+		} else {
+			const difference = this.subtract(vector2, vector1);
+			return (
+				Math.abs(difference.x) <= tolerance &&
+				Math.abs(difference.y) <= tolerance &&
+				Math.abs(difference.z) <= tolerance
+			);
+		}
 	}
 
 	public static getFlatViewDirection(rotationDegrees: number, usingRadians: boolean = false) {
-		let radians = (!usingRadians ? rotationDegrees * this.toRad : rotationDegrees);
+		let radians = (!usingRadians ? rotationDegrees * this.TO_RAD : rotationDegrees);
 		return {
 			x: -this.sin(radians), // East-West
 			y: 0,
@@ -52,9 +69,18 @@ export class VectorMath {
 		};
 	}
 
-	public static rotateVectorY(vector: Vector3, rotationDegrees: number, usingRadians: boolean = false, clockwiseIsNegative: boolean = true) {
+	public static getFlatPerpendicularVector(vector: Vector3, direction: "Left" | "Right") {
+		const flatVector = this.normalise(this.multiply(vector, this.FLAT_VECTOR));
+		if (direction === "Left") {
+			return { x: flatVector.z, y: 0, z: -flatVector.x };
+		} else {
+			return { x: -flatVector.z, y: 0, z: flatVector.x };
+		}
+	}
+
+	public static rotateVectorY(vector: Vector3, rotationDegrees: number, usingRadians: boolean = false, clockwiseIsNegative: boolean = false) {
 		if (!clockwiseIsNegative) rotationDegrees = -rotationDegrees;
-		const radiansY = (!usingRadians ? rotationDegrees * this.toRad : rotationDegrees);
+		const radiansY = (!usingRadians ? rotationDegrees * this.TO_RAD : rotationDegrees);
 
 		const { x, y, z } = vector;
 		let x2 = x * this.cos(radiansY) + z * this.sin(radiansY);
@@ -69,8 +95,8 @@ export class VectorMath {
 
 	public static rotateVectorLocalX(vector: Vector3, yRotationDegrees: number, rotationDegrees: number, usingRadians: boolean = false, upwardsIsNegative: boolean = true) {
 		if (!upwardsIsNegative) rotationDegrees = -rotationDegrees;
-		const radiansX = (!usingRadians ? rotationDegrees * this.toRad : rotationDegrees);
-		const radiansY = (!usingRadians ? yRotationDegrees * this.toRad : yRotationDegrees);
+		const radiansX = (!usingRadians ? rotationDegrees * this.TO_RAD : rotationDegrees);
+		const radiansY = (!usingRadians ? yRotationDegrees * this.TO_RAD : yRotationDegrees);
 
 		const { x, y, z } = vector;
 		const finalRadiansX = this.asin(y) + radiansX;
@@ -87,6 +113,36 @@ export class VectorMath {
 			y: y2,
 			z: z2
 		};
+	}
+
+	public static degreesBetweenVectors(referenceVector: Vector3, secondVector: Vector3): number {
+		referenceVector = this.normalise(referenceVector);
+		secondVector = this.normalise(secondVector);
+
+		let dotProduct = referenceVector.x * secondVector.x + referenceVector.y * secondVector.y + referenceVector.z * secondVector.z;
+		let referenceVectorMagnitude = Math.hypot(referenceVector.x, referenceVector.y, referenceVector.z);
+		let secondVectorMagnitude = Math.hypot(secondVector.x, secondVector.y, secondVector.z);
+		let cosTheta = dotProduct / (referenceVectorMagnitude * secondVectorMagnitude);
+		return Math.acos(Math.max(-1, Math.min(1, cosTheta))) * this.TO_DEG;
+	}
+
+	public static signedHorizontalAngleBetweenVectors(referenceVector: Vector3, secondVector: Vector3, useRadians: boolean = false): number {
+		referenceVector = this.flattenVector(referenceVector);
+		secondVector = this.flattenVector(secondVector);
+
+		const dotProduct = this.dotProduct(referenceVector, secondVector);
+		const radians = Math.acos(this.clamp(dotProduct, -1, 1));
+
+		const rotatedReferenceVector = this.rotateVectorY(referenceVector, radians, true);
+		const output = useRadians ? radians : radians * this.TO_DEG;
+		if (VectorMath.equals(rotatedReferenceVector, secondVector, 1e-4)) return output;
+		else return -output;
+	}
+
+	public static flattenVector(vector: Vector3, normalise: boolean = true) {
+		const flatVector = this.multiply(vector, this.FLAT_VECTOR);
+		if (!normalise) return flatVector;
+		return this.normalise(flatVector);
 	}
 
 	public static magnitude(vector: Vector3): number {
@@ -136,11 +192,12 @@ export class VectorMath {
 		};
 	}
 
-	public static multiply(vector: Vector3, scalar: number) {
+	public static multiply(vector: Vector3, scalar: Vector3 | number) {
+		scalar = this.getVectorFromVectorOrNumber(scalar);
 		return {
-			x: vector.x * scalar,
-			y: vector.y * scalar,
-			z: vector.z * scalar
+			x: vector.x * scalar.x,
+			y: vector.y * scalar.y,
+			z: vector.z * scalar.z
 		};
 	}
 
@@ -152,6 +209,16 @@ export class VectorMath {
 			difference.z * difference.z
 		);
 	}
+
+	public static flatDistanceSquared(vector1: Vector3, vector2: Vector3): number {
+		const difference = this.subtract(vector1, vector2);
+		return (
+			difference.x * difference.x +
+			difference.z * difference.z
+		);
+	}
+
+
 
 	public static distance(vector1: Vector3, vector2: Vector3) {
 		const difference = this.subtract(vector1, vector2);
@@ -173,6 +240,96 @@ export class VectorMath {
 			y: vector2.z * vector1.x - vector2.x * vector1.z,
 			z: vector2.x * vector1.y - vector2.y * vector1.x
 		}
+	}
+
+	public static closestPointInCapsuleToVector(capsuleStart: Vector3, capsuleEnd: Vector3, capsuleRadius: number, vectorOrigin: Vector3, vectorDirection: Vector3, vectorMagnitude: number) {
+		const vectorEnd = VectorMath.add(vectorOrigin, VectorMath.multiply(vectorDirection, vectorMagnitude));
+		const [closestPointToRay, closestPointToCapsule] = this.closestPointsOnVectors(capsuleStart, capsuleEnd, vectorOrigin, vectorEnd);
+		if (VectorMath.equals(closestPointToRay, closestPointToCapsule, 1e-6)) return closestPointToRay;
+
+		const distanceSquared = this.clamp(this.segmentSegmentDistanceSquared(capsuleStart, capsuleEnd, vectorOrigin, vectorEnd), 0, capsuleRadius * capsuleRadius);
+		const distance = Math.sqrt(distanceSquared);
+		const vectorToRay = VectorMath.normalise(VectorMath.subtract(closestPointToCapsule, closestPointToRay));
+		const closestPoint = VectorMath.add(closestPointToRay, VectorMath.multiply(vectorToRay, distance));
+		return closestPoint;
+	}
+
+	private static closestPointsOnVectors(segment1Start: Vector3, segment1End: Vector3, segment2Start: Vector3, segment2End: Vector3): [Vector3, Vector3] {
+		const direction1 = this.subtract(segment1End, segment1Start);
+		const direction2 = this.subtract(segment2End, segment2Start);
+		const r = this.subtract(segment1Start, segment2Start);
+
+		const a = this.dotProduct(direction1, direction1);
+		const e = this.dotProduct(direction2, direction2);
+		const f = this.dotProduct(direction2, r);
+
+		let s: number;
+		let t: number;
+
+		if (a <= 1e-8 && e <= 1e-8) {
+			// Both segments degenerate into points
+			return [segment1Start, segment2Start]
+		}
+
+		if (a <= 1e-8) {
+			// First segment is a point
+			s = 0;
+			t = f / e;
+			t = Math.max(0, Math.min(1, t));
+		} else {
+			const c = this.dotProduct(direction1, r);
+
+			if (e <= 1e-8) {
+				// Second segment is a point
+				t = 0;
+				s = Math.max(0, Math.min(1, -c / a));
+			} else {
+				const b = this.dotProduct(direction1, direction2);
+				const denominator = a * e - b * b;
+
+				if (denominator !== 0) {
+					s = Math.max(0, Math.min(1, (b * f - c * e) / denominator));
+				} else {
+					s = 0;
+				}
+
+				t = (b * s + f) / e;
+
+				if (t < 0) {
+					t = 0;
+					s = Math.max(0, Math.min(1, -c / a));
+				} else if (t > 1) {
+					t = 1;
+					s = Math.max(0, Math.min(1, (b - c) / a));
+				}
+			}
+		}
+
+		const closestPoint1 = {
+			x: segment1Start.x + direction1.x * s,
+			y: segment1Start.y + direction1.y * s,
+			z: segment1Start.z + direction1.z * s
+		};
+
+		const closestPoint2 = {
+			x: segment2Start.x + direction2.x * t,
+			y: segment2Start.y + direction2.y * t,
+			z: segment2Start.z + direction2.z * t
+		};
+
+		return [closestPoint1, closestPoint2];
+	}
+
+	public static capsuleSphereIntersection(capsuleStart: Vector3, capsuleEnd: Vector3, capsuleRadius: number, sphereLocation: Vector3, sphereRadius: number) {
+		const capsuleDirection = this.subtract(capsuleEnd, capsuleStart);
+		const vectorToSphere = this.subtract(sphereLocation, capsuleStart);
+
+		const t = this.clamp(this.dotProduct(vectorToSphere, capsuleDirection) / this.dotProduct(capsuleDirection, capsuleDirection), 0, 1);
+		const closestPointToSphere = this.add(capsuleStart, this.multiply(capsuleDirection, t));
+		const distanceSquared = this.distanceSquared(sphereLocation, closestPointToSphere);
+		const sumRadius = capsuleRadius + sphereRadius;
+		const intersects = distanceSquared <= (sumRadius * sumRadius);
+		return intersects;
 	}
 
 	public static raySphereIntersection(sphereCenter: Vector3, sphereRadius: number, rayOrigin: Vector3, rayDirection: Vector3) {
