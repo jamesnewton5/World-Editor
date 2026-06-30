@@ -1,13 +1,32 @@
-import { world, system, BlockVolume, Direction, Vector3, Dimension, BlockType } from "@minecraft/server";
+import { world, system, BlockVolume, Direction, Vector3, Dimension, BlockType, EntitySwingSource } from "@minecraft/server";
 import { AddonMessage, MessageType } from "./message_formatting";
 import { PlayerCache } from "./player/player_cache";
 import { CustomPlayer } from "./types";
 import { TOOL_TYPE_ID } from "./data";
+import { VectorMath } from "./vector_math";
+import { getBlockLocationFromRay } from "./utilities/dimension";
+import { VFX } from "./utilities/vfx";
 
 export class BuildTools {
     private static initialised = false;
     public static initialise() {
         if (this.initialised) return;
+
+        world.afterEvents.playerSwingStart.subscribe((event) => {
+            if (event.swingSource !== EntitySwingSource.Attack && event.swingSource !== EntitySwingSource.Mine) return;
+            const player = event.player;
+            if (event.heldItemStack?.typeId === TOOL_TYPE_ID && player.getGameMode() === "Creative") {
+                const customPlayer = PlayerCache.get(player);
+                if (customPlayer === undefined) return;
+                if (customPlayer._tempData.mostRecentBlockBrokenWithToolTick === system.currentTick) return;
+                system.runTimeout(() => {
+                    if (!customPlayer.isValid) return;
+                    const aimingAtLocation = getBlockLocationFromRay(customPlayer.dimension, customPlayer.getHeadLocation(), customPlayer.getViewDirection(), 48);
+                    if (aimingAtLocation === undefined) return;
+                    this.setPosition(customPlayer, "position1", aimingAtLocation);
+                }, 1);
+            }
+        });
 
         world.beforeEvents.playerBreakBlock.subscribe((event) => {
             const player = event.player;
@@ -15,7 +34,24 @@ export class BuildTools {
                 event.cancel = true;
                 const customPlayer = PlayerCache.get(player);
                 if (customPlayer === undefined) return;
-                this.setPosition(customPlayer, "position1", event.block.location);
+                customPlayer._tempData.mostRecentBlockBrokenWithToolTick = system.currentTick;
+                system.run(() => this.setPosition(customPlayer, "position1", event.block.location));
+            }
+        });
+
+        world.beforeEvents.itemUse.subscribe((event) => {
+            const player = event.source;
+            if (event.itemStack?.typeId === TOOL_TYPE_ID) {
+                event.cancel = true;
+                if (player.getGameMode() !== "Creative") return;
+                const customPlayer = PlayerCache.get(player);
+                if (customPlayer === undefined) return;
+                system.runTimeout(() => {
+                    if (!customPlayer.isValid) return;
+                    const aimingAtLocation = getBlockLocationFromRay(customPlayer.dimension, customPlayer.getHeadLocation(), customPlayer.getViewDirection(), 48);
+                    if (aimingAtLocation === undefined) return;
+                    this.setPosition(customPlayer, "position2", aimingAtLocation);
+                }, 1);
             }
         });
 
@@ -26,7 +62,7 @@ export class BuildTools {
                 if (!event.isFirstEvent) return;
                 const customPlayer = PlayerCache.get(player);
                 if (customPlayer === undefined) return;
-                this.setPosition(customPlayer, "position2", event.block.location);
+                system.run(() => this.setPosition(customPlayer, "position2", event.block.location));
             }
         });
 
@@ -35,8 +71,11 @@ export class BuildTools {
 
     public static setPosition(customPlayer: CustomPlayer, propertyKey: "position1" | "position2", location: Vector3 | undefined) {
         const tempData = customPlayer._tempData;
+        if (location !== undefined) VectorMath.floor(location);
         tempData[propertyKey] = location;
         if (location === undefined) return;
+        // Highlight
+        VFX.highlightBlock(customPlayer.dimension, location);
         // Message
         if (customPlayer._messageCooldown()) return;
         const oppositePropertyKey = propertyKey === "position1" ? "position2" : "position1";

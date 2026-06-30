@@ -10,6 +10,7 @@ export const customPlayerDataTemplate: CustomPlayerData = {
     _tempData: {
         position1: undefined,
         position2: undefined,
+        mostRecentBlockBrokenWithToolTick: 0,
         mask: undefined,
         lastInfoMessageTick: 0
     },

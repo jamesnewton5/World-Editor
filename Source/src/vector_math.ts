@@ -69,6 +69,13 @@ export class VectorMath {
 		};
 	}
 
+	/** Mutates original object */
+	public static floor(vector: Vector3) {
+		vector.x = Math.floor(vector.x);
+		vector.y = Math.floor(vector.y);
+		vector.z = Math.floor(vector.z);
+	}
+
 	public static getFlatPerpendicularVector(vector: Vector3, direction: "Left" | "Right") {
 		const flatVector = this.normalise(this.multiply(vector, this.FLAT_VECTOR));
 		if (direction === "Left") {

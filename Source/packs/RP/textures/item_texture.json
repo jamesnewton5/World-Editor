@@ -1,5 +1,9 @@
 {
-  "resource_pack_name": "vanilla",
-  "texture_name": "atlas.items",
-  "texture_data": {}
+	"resource_pack_name": "World Editor",
+	"texture_name": "atlas.items",
+	"texture_data": {
+		"world-editor:wand": {
+			"textures": "textures/world-editor/items/wand"
+		}
+	}
 }

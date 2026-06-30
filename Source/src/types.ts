@@ -7,6 +7,7 @@ export type CustomPlayerPersistentData = {
 export type CustomPlayerTempData = {
     position1: Vector3 | undefined;
     position2: Vector3 | undefined;
+    mostRecentBlockBrokenWithToolTick: number;
     mask: string | undefined;
     lastInfoMessageTick: number;
 };

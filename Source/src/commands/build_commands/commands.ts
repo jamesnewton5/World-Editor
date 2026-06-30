@@ -22,7 +22,7 @@ export const buildCommands = {
     },
     pos2Command: {
         customCommand: {
-            name: `${PACK_ID}:pos1`,
+            name: `${PACK_ID}:pos2`,
             description: "Set the second position in a selection.",
             permissionLevel: CommandPermissionLevel.Admin
         },
