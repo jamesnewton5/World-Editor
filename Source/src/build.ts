@@ -13,23 +13,9 @@ export class BuildTools {
             const player = event.player;
             if (event.itemStack?.typeId === TOOL_TYPE_ID && player.getGameMode() === "Creative") {
                 event.cancel = true;
-
-                // Set position 1
                 const customPlayer = PlayerCache.get(player);
                 if (customPlayer === undefined) return;
-                const position1 = event.block.location;
-                customPlayer._tempData.position1 = position1;
-
-                // Chat message
-                if (customPlayer._messageCooldown()) return;
-                const position2 = customPlayer._tempData.position2;
-                if (position2 === undefined) {
-                    customPlayer.sendMessage(`§7First position set to (${position1.x}, ${position1.y}, ${position1.z}).`);
-                } else {
-                    const volume = new BlockVolume(position1, position2);
-                    const volumeCapacity = volume.getCapacity();
-                    customPlayer.sendMessage(`§7First position set to (${position1.x}, ${position1.y}, ${position1.z}). (${volumeCapacity})`);
-                }
+                this.setPosition(customPlayer, "position1", event.block.location);
             }
         });
 
@@ -38,27 +24,31 @@ export class BuildTools {
             if (event.itemStack?.typeId === TOOL_TYPE_ID && player.getGameMode() === "Creative") {
                 event.cancel = true;
                 if (!event.isFirstEvent) return;
-
-                // Set position 2
                 const customPlayer = PlayerCache.get(player);
                 if (customPlayer === undefined) return;
-                const position2 = event.block.location;
-                customPlayer._tempData.position2 = position2;
-
-                // Chat message
-                if (customPlayer._messageCooldown()) return;
-                const position1 = customPlayer._tempData.position1;
-                if (position1 === undefined) {
-                    customPlayer.sendMessage(`§7Second position set to (${position2.x}, ${position2.y}, ${position2.z}).`);
-                } else {
-                    const volume = new BlockVolume(position1, position2);
-                    const volumeCapacity = volume.getCapacity();
-                    customPlayer.sendMessage(`§7Second position set to (${position2.x}, ${position2.y}, ${position2.z}). (${volumeCapacity})`);
-                }
+                this.setPosition(customPlayer, "position2", event.block.location);
             }
         });
 
         this.initialised = true;
+    }
+
+    public static setPosition(customPlayer: CustomPlayer, propertyKey: "position1" | "position2", location: Vector3 | undefined) {
+        const tempData = customPlayer._tempData;
+        tempData[propertyKey] = location;
+        if (location === undefined) return;
+
+        const oppositePropertyKey = propertyKey === "position1" ? "position2" : "position1";
+
+        if (customPlayer._messageCooldown()) return;
+        const oppositePosition = tempData[oppositePropertyKey];
+        if (oppositePosition === undefined) {
+            customPlayer.sendMessage(`§7${propertyKey === "position1" ? "First" : "Second"} position set to (${location.x}, ${location.y}, ${location.z}).`);
+        } else {
+            const volume = new BlockVolume(location, oppositePosition);
+            const volumeCapacity = volume.getCapacity();
+            customPlayer.sendMessage(`§7${propertyKey === "position1" ? "First" : "Second"} position set to (${location.x}, ${location.y}, ${location.z}). (${volumeCapacity})`);
+        }
     }
 
     public static getSelectedVolume(customPlayer: CustomPlayer): BlockVolume | undefined {

@@ -33,6 +33,18 @@ export class BuildFunctions {
         });
     }
 
+    runDeselectCommand(origin: CustomCommandOrigin) {
+        const player = checkIfPlayer(origin) as Player | null;
+        if (!player) return;
+        const customPlayer = PlayerCache.get(player);
+        if (customPlayer === undefined) return;
+        BuildTools.setPosition(customPlayer, "position1", undefined);
+        BuildTools.setPosition(customPlayer, "position2", undefined);
+        system.run(() => {
+            AddonMessage.send(customPlayer, `Selection cleared`, MessageType.Info);
+        });
+    }
+
     runSetCommand(origin: CustomCommandOrigin, blockType: BlockType) {
         const player = checkIfPlayer(origin) as Player | null;
         if (!player) return;

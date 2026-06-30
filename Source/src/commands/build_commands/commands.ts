@@ -12,6 +12,14 @@ export const buildCommands = {
         },
         callbackFunction: BuildFunctions.prototype.runWandCommand
     },
+    deselectCommand: {
+        customCommand: {
+            name: `${PACK_ID}:deselect`,
+            description: "Clear current selection.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.prototype.runDeselectCommand
+    },
     setCommand: {
         customCommand: {
             name: `${PACK_ID}:set`,
