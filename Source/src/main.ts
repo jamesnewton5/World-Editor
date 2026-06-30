@@ -16,7 +16,7 @@ system.beforeEvents.startup.subscribe((event: StartupEvent) => {
 
 import { PlayerCache } from "./player/player_cache";
 import { BuildTools } from "./build";
-import { CustomPlayer, CustomPlayerCache } from "./player/player_constructor";
+import { CustomPlayer, CustomPlayerCache } from "./types";
 world.afterEvents.worldLoad.subscribe(() => {
     PlayerCache.initialise();
     BuildTools.initialise();

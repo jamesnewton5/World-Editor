@@ -4,6 +4,14 @@ import { BuildFunctions } from "./functions";
 import { PACK_ID } from "../../data";
 
 export const buildCommands = {
+    wandCommand: {
+        customCommand: {
+            name: `${PACK_ID}:wand`,
+            description: "Add the WorldEditor tool to your inventory.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.prototype.runWandCommand
+    },
     setCommand: {
         customCommand: {
             name: `${PACK_ID}:set`,

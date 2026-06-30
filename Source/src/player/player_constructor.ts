@@ -1,9 +1,8 @@
 import { Player } from "@minecraft/server";
-import { CustomPlayerData, CustomPlayerPersistentData, customPlayerDataTemplate } from "./player_config";
+import { customPlayerDataTemplate } from "./player_template";
 import { deepClone, queueMicrotask } from "../general";
+import { CustomPlayer, CustomPlayerData, CustomPlayerPersistentData } from "../types";
 
-export type CustomPlayer = Player & CustomPlayerData;
-export type CustomPlayerCache = Map<string, CustomPlayer>;
 export function createCustomPlayer(player: Player): CustomPlayer {
     // Create data
     const defaultCustomPlayerData = deepClone(customPlayerDataTemplate);

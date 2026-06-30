@@ -1,5 +1,6 @@
 import { InputPermissionCategory, Player, system, world } from "@minecraft/server";
-import { createCustomPlayer, CustomPlayer, CustomPlayerCache } from "./player_constructor";
+import { createCustomPlayer } from "./player_constructor";
+import { CustomPlayer, CustomPlayerCache } from "../types";
 import { Debug } from "../debug";
 
 

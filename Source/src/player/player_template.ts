@@ -1,4 +1,5 @@
 import { system, Vector3 } from "@minecraft/server";
+import { CustomPlayerData } from "../types";
 
 export const customPlayerDataTemplate: CustomPlayerData = {
     // Will get stored automatically when it is updated
@@ -21,19 +22,4 @@ export const customPlayerDataTemplate: CustomPlayerData = {
         return false;
     },
     _persistentDataSaveScheduled: false
-};
-export type CustomPlayerPersistentData = {
-    placeholder: null;
-};
-export type CustomPlayerTempData = {
-    position1: Vector3 | undefined;
-    position2: Vector3 | undefined;
-    mask: string | undefined;
-    lastInfoMessageTick: number;
-};
-export type CustomPlayerData = {
-    _persistentData: CustomPlayerPersistentData;
-    _tempData: CustomPlayerTempData;
-    _messageCooldown: Function;
-    _persistentDataSaveScheduled: boolean;
 };

@@ -1,7 +1,8 @@
 import { world, system, BlockVolume, Direction, Vector3, Dimension, BlockType } from "@minecraft/server";
 import { AddonMessage, MessageType } from "./message_formatting";
 import { PlayerCache } from "./player/player_cache";
-import { CustomPlayer } from "./player/player_constructor";
+import { CustomPlayer } from "./types";
+import { TOOL_TYPE_ID } from "./data";
 
 export class BuildTools {
     private static initialised = false;
@@ -10,7 +11,7 @@ export class BuildTools {
 
         world.beforeEvents.playerBreakBlock.subscribe((event) => {
             const player = event.player;
-            if (event.itemStack?.typeId === "minecraft:wooden_axe" && player.getGameMode() === "Creative") {
+            if (event.itemStack?.typeId === TOOL_TYPE_ID && player.getGameMode() === "Creative") {
                 event.cancel = true;
 
                 // Set position 1
@@ -34,7 +35,7 @@ export class BuildTools {
 
         world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
             const player = event.player;
-            if (event.itemStack?.typeId === "minecraft:wooden_axe" && player.getGameMode() === "Creative") {
+            if (event.itemStack?.typeId === TOOL_TYPE_ID && player.getGameMode() === "Creative") {
                 event.cancel = true;
                 if (!event.isFirstEvent) return;
 
