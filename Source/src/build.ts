@@ -37,10 +37,9 @@ export class BuildTools {
         const tempData = customPlayer._tempData;
         tempData[propertyKey] = location;
         if (location === undefined) return;
-
-        const oppositePropertyKey = propertyKey === "position1" ? "position2" : "position1";
-
+        // Message
         if (customPlayer._messageCooldown()) return;
+        const oppositePropertyKey = propertyKey === "position1" ? "position2" : "position1";
         const oppositePosition = tempData[oppositePropertyKey];
         if (oppositePosition === undefined) {
             customPlayer.sendMessage(`§7${propertyKey === "position1" ? "First" : "Second"} position set to (${location.x}, ${location.y}, ${location.z}).`);
@@ -64,13 +63,13 @@ export class BuildTools {
     public static set(customPlayer: CustomPlayer, blockType: BlockType) {
         const volume = this.getSelectedVolume(customPlayer);
         if (volume === undefined) return;
-        system.run(() => this.setVolume(customPlayer, volume, blockType.id));
+        this.setVolume(customPlayer, volume, blockType.id);
     }
 
     public static replace(customPlayer: CustomPlayer, blockType: BlockType, replacementBlockType: BlockType) {
         const volume = this.getSelectedVolume(customPlayer);
         if (volume === undefined) return;
-        system.run(() => this.replaceVolume(customPlayer, volume, blockType.id, replacementBlockType.id));
+        this.replaceVolume(customPlayer, volume, blockType.id, replacementBlockType.id);
     }
 
     private static async setVolume(customPlayer: CustomPlayer, volume: BlockVolume, blockTypeId: string) {

@@ -10,7 +10,23 @@ export const buildCommands = {
             description: "Add the WorldEditor tool to your inventory.",
             permissionLevel: CommandPermissionLevel.Admin
         },
-        callbackFunction: BuildFunctions.prototype.runWandCommand
+        callbackFunction: BuildFunctions.runWandCommand
+    },
+    pos1Command: {
+        customCommand: {
+            name: `${PACK_ID}:pos1`,
+            description: "Set the first position in a selection.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.runPos1Command
+    },
+    pos2Command: {
+        customCommand: {
+            name: `${PACK_ID}:pos1`,
+            description: "Set the second position in a selection.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.runPos2Command
     },
     deselectCommand: {
         customCommand: {
@@ -18,7 +34,7 @@ export const buildCommands = {
             description: "Clear current selection.",
             permissionLevel: CommandPermissionLevel.Admin
         },
-        callbackFunction: BuildFunctions.prototype.runDeselectCommand
+        callbackFunction: BuildFunctions.runDeselectCommand
     },
     setCommand: {
         customCommand: {
@@ -27,7 +43,7 @@ export const buildCommands = {
             permissionLevel: CommandPermissionLevel.Admin,
             mandatoryParameters: [{ type: CustomCommandParamType.BlockType, name: "blockType" }]
         },
-        callbackFunction: BuildFunctions.prototype.runSetCommand
+        callbackFunction: BuildFunctions.runSetCommand
     },
     replaceCommand: {
         customCommand: {
@@ -36,7 +52,7 @@ export const buildCommands = {
             permissionLevel: CommandPermissionLevel.Admin,
             mandatoryParameters: [{ type: CustomCommandParamType.BlockType, name: "blockType" }, { type: CustomCommandParamType.BlockType, name: "blockType" }]
         },
-        callbackFunction: BuildFunctions.prototype.runReplaceCommand
+        callbackFunction: BuildFunctions.runReplaceCommand
     },
     maskCommand: {
         customCommand: {
@@ -45,6 +61,6 @@ export const buildCommands = {
             permissionLevel: CommandPermissionLevel.Admin,
             optionalParameters: [{ type: CustomCommandParamType.BlockType, name: "blockType" }]
         },
-        callbackFunction: BuildFunctions.prototype.runMaskCommand
+        callbackFunction: BuildFunctions.runMaskCommand
     }
 }

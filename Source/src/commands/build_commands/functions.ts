@@ -1,79 +1,106 @@
-import { BlockType, BlockVolume, CustomCommandOrigin, ItemStack, Player, system, world } from "@minecraft/server";
+import { BlockType, BlockVolume, CustomCommandOrigin, ItemStack, Player, system, world, CustomCommandResult, CustomCommandStatus } from "@minecraft/server";
 import { BuildTools } from "../../build";
 import { AddonMessage, MessageType } from "../../message_formatting";
 import { PlayerCache } from "../../player/player_cache";
 import { EntityUtilities } from "../../utilities/entity";
 import { TOOL_TYPE_ID } from "../../data";
+import { CustomPlayer } from "../../types";
 
-function checkIfPlayer(origin: CustomCommandOrigin) {
+function getCustomPlayer(origin: CustomCommandOrigin) {
     const sourceEntity = origin.sourceEntity;
-    if (sourceEntity === undefined) return null;
-    if (sourceEntity.typeId !== "minecraft:player") return null;
-    if (!sourceEntity.isValid) return null;
-    return sourceEntity;
+    if (sourceEntity === undefined) return undefined;
+    if (sourceEntity.typeId !== "minecraft:player") return undefined;
+    if (!sourceEntity.isValid) return undefined;
+    const customPlayer = PlayerCache.get(sourceEntity as Player);
+    return customPlayer;
 }
 
-export class BuildFunctions {
-    runWandCommand(origin: CustomCommandOrigin) {
-        const player = checkIfPlayer(origin) as Player | null;
-        if (!player) return;
-        system.run(() => {
-            const toolItemStack = new ItemStack(TOOL_TYPE_ID);
-            const mainHand = EntityUtilities.getHeldItem(player);
-            const slotNumber = EntityUtilities.getItemSlot(player, toolItemStack);
-            if (mainHand === undefined) {
-                if (slotNumber !== undefined) {
-                    EntityUtilities.swapSlots(player, slotNumber, player.selectedSlotIndex);
-                } else {
-                    EntityUtilities.setHeldItem(player, TOOL_TYPE_ID);
-                }
-            } else if (mainHand.typeId !== TOOL_TYPE_ID && slotNumber === undefined) {
-                player.addItem(toolItemStack);
-            }
-        });
-    }
+const result: CustomCommandResult = {
+    status: CustomCommandStatus.Success
+};
 
-    runDeselectCommand(origin: CustomCommandOrigin) {
-        const player = checkIfPlayer(origin) as Player | null;
-        if (!player) return;
-        const customPlayer = PlayerCache.get(player);
+const methodProxyHandler = {
+    apply(target: any, thisArg: any, args: Array<any>) {
+        const origin = args[0];
+        const customPlayer = getCustomPlayer(origin);
         if (customPlayer === undefined) return;
+        args[0] = customPlayer;
+        system.run(() => {
+            Reflect.apply(target, thisArg, args);
+        });
+        return result;
+    }
+};
+
+export const BuildFunctions = new Proxy({
+    /*
+    High Priority::
+        Change build functions to use more structures
+        /cui (client-user-interface, will show selection)
+        /walls
+        /faces
+        /move
+        /copy
+        /cut
+        /paste
+        /undo
+        /redo
+
+    Low Priority:
+        Handle multiple dimensions
+
+    DONE:
+        /deselect
+        /pos1
+        /pos2
+    */
+
+    runWandCommand: function (customPlayer: CustomPlayer) {
+        const toolItemStack = new ItemStack(TOOL_TYPE_ID);
+        const mainHand = EntityUtilities.getHeldItem(customPlayer);
+        const slotNumber = EntityUtilities.getItemSlot(customPlayer, toolItemStack);
+        if (mainHand === undefined) {
+            if (slotNumber !== undefined) {
+                EntityUtilities.swapSlots(customPlayer, slotNumber, customPlayer.selectedSlotIndex);
+            } else {
+                EntityUtilities.setHeldItem(customPlayer, TOOL_TYPE_ID);
+            }
+        } else if (mainHand.typeId !== TOOL_TYPE_ID && slotNumber === undefined) {
+            customPlayer.addItem(toolItemStack);
+        }
+    },
+    runPos1Command: function (customPlayer: CustomPlayer) {
+        BuildTools.setPosition(customPlayer, "position1", customPlayer.location);
+    },
+    runPos2Command: function (customPlayer: CustomPlayer) {
+        BuildTools.setPosition(customPlayer, "position2", customPlayer.location);
+    },
+    runDeselectCommand: function (customPlayer: CustomPlayer) {
         BuildTools.setPosition(customPlayer, "position1", undefined);
         BuildTools.setPosition(customPlayer, "position2", undefined);
-        system.run(() => {
-            AddonMessage.send(customPlayer, `Selection cleared`, MessageType.Info);
-        });
-    }
-
-    runSetCommand(origin: CustomCommandOrigin, blockType: BlockType) {
-        const player = checkIfPlayer(origin) as Player | null;
-        if (!player) return;
-        const customPlayer = PlayerCache.get(player);
-        if (customPlayer === undefined) return;
+        AddonMessage.send(customPlayer, `Selection cleared`, MessageType.Info);
+    },
+    runSetCommand: function (customPlayer: CustomPlayer, blockType: BlockType) {
         BuildTools.set(customPlayer, blockType);
-    }
-
-    runReplaceCommand(origin: CustomCommandOrigin, blockType: BlockType, replacementBlockType: BlockType) {
-        const player = checkIfPlayer(origin) as Player | null;
-        if (!player) return;
-        const customPlayer = PlayerCache.get(player);
-        if (customPlayer === undefined) return;
+    },
+    runReplaceCommand: function (customPlayer: CustomPlayer, blockType: BlockType, replacementBlockType: BlockType) {
         BuildTools.replace(customPlayer, blockType, replacementBlockType);
-    }
-
-    runMaskCommand(origin: CustomCommandOrigin, blockType: BlockType | undefined) {
-        const player = checkIfPlayer(origin) as Player | null;
-        if (!player) return;
-        const customPlayer = PlayerCache.get(player);
-        if (customPlayer === undefined) return;
+    },
+    runMaskCommand: function (customPlayer: CustomPlayer, blockType: BlockType | undefined) {
         const blockTypeId = blockType?.id;
         customPlayer._tempData.mask = blockTypeId;
-        system.run(() => {
-            if (blockTypeId === undefined) {
-                AddonMessage.send(customPlayer, "Mask reset", MessageType.Info);
-            } else {
-                AddonMessage.send(customPlayer, `Mask set to ${blockTypeId}`, MessageType.Info);
-            }
-        });
+        if (blockTypeId === undefined) {
+            AddonMessage.send(customPlayer, "Mask reset", MessageType.Info);
+        } else {
+            AddonMessage.send(customPlayer, `Mask set to ${blockTypeId}`, MessageType.Info);
+        }
     }
-}
+}, {
+    get(target, propertyName, receiver) {
+        const value = Reflect.get(target, propertyName, receiver);
+        if (typeof value === 'function') {
+            return new Proxy(value, methodProxyHandler);
+        }
+        return value;
+    }
+});
