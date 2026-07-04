@@ -1,4 +1,4 @@
-import { Dimension, Direction, Vector3 } from "@minecraft/server";
+import { BlockVolume, Dimension, Direction, Vector3 } from "@minecraft/server";
 
 /**
  * Manually excludes structure voids, as they are not counted as passable blocks which is bad.
@@ -51,4 +51,22 @@ export function getBlockLocationFromRay(dimension: Dimension, rayOrigin: Vector3
     const block = raycastResult.block;
     const blockLocation = block.location;
     return blockLocation;
+}
+
+export class DimensionUtilities {
+    public static forEachBlockOfVolume(volume: BlockVolume, callback: (location: Vector3) => void) {
+        const volumeMin = volume.getMin();
+        const volumeMax = volume.getMax();
+        const currentLocation = { x: 0, y: 0, z: 0 };
+        for (let x = volumeMin.x; x <= volumeMax.x; x++) {
+            currentLocation.x = x;
+            for (let y = volumeMin.y; y <= volumeMax.y; y++) {
+                currentLocation.y = y;
+                for (let z = volumeMin.z; z <= volumeMax.z; z++) {
+                    currentLocation.z = z;
+                    callback(currentLocation);
+                }
+            }
+        }
+    }
 }

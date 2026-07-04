@@ -1,10 +1,10 @@
-import { world, system, BlockVolume, Direction, Vector3, Dimension, BlockType, EntitySwingSource } from "@minecraft/server";
+import { world, system, BlockVolume, Direction, Vector3, Dimension, BlockType, EntitySwingSource, Player } from "@minecraft/server";
 import { AddonMessage, MessageType } from "./message_formatting";
 import { PlayerCache } from "./player/player_cache";
 import { CustomPlayer } from "./types";
 import { TOOL_TYPE_ID } from "./data";
 import { VectorMath } from "./vector_math";
-import { getBlockLocationFromRay } from "./utilities/dimension";
+import { DimensionUtilities, getBlockLocationFromRay } from "./utilities/dimension";
 import { VFX } from "./utilities/vfx";
 
 export class BuildTools {
@@ -12,61 +12,48 @@ export class BuildTools {
     public static initialise() {
         if (this.initialised) return;
 
+        world.beforeEvents.playerBreakBlock.subscribe((event) => {
+            if (event.itemStack?.typeId === TOOL_TYPE_ID && event.player.getGameMode() === "Creative") event.cancel = true;
+        });
+
         world.afterEvents.playerSwingStart.subscribe((event) => {
             if (event.swingSource !== EntitySwingSource.Attack && event.swingSource !== EntitySwingSource.Mine) return;
             const player = event.player;
-            if (event.heldItemStack?.typeId === TOOL_TYPE_ID && player.getGameMode() === "Creative") {
-                const customPlayer = PlayerCache.get(player);
-                if (customPlayer === undefined) return;
-                if (customPlayer._tempData.mostRecentBlockBrokenWithToolTick === system.currentTick) return;
-                system.runTimeout(() => {
-                    if (!customPlayer.isValid) return;
-                    const aimingAtLocation = getBlockLocationFromRay(customPlayer.dimension, customPlayer.getHeadLocation(), customPlayer.getViewDirection(), 48);
-                    if (aimingAtLocation === undefined) return;
-                    this.setPosition(customPlayer, "position1", aimingAtLocation);
-                }, 1);
-            }
-        });
-
-        world.beforeEvents.playerBreakBlock.subscribe((event) => {
-            const player = event.player;
-            if (event.itemStack?.typeId === TOOL_TYPE_ID && player.getGameMode() === "Creative") {
-                event.cancel = true;
-                const customPlayer = PlayerCache.get(player);
-                if (customPlayer === undefined) return;
-                customPlayer._tempData.mostRecentBlockBrokenWithToolTick = system.currentTick;
-                system.run(() => this.setPosition(customPlayer, "position1", event.block.location));
-            }
+            if (event.heldItemStack?.typeId !== TOOL_TYPE_ID || player.getGameMode() !== "Creative") return;
+            this.setPositionFromViewDirection(player, "position1");
         });
 
         world.beforeEvents.itemUse.subscribe((event) => {
+            if (event.itemStack?.typeId !== TOOL_TYPE_ID) return;
             const player = event.source;
-            if (event.itemStack?.typeId === TOOL_TYPE_ID) {
-                event.cancel = true;
-                if (player.getGameMode() !== "Creative") return;
-                const customPlayer = PlayerCache.get(player);
-                if (customPlayer === undefined) return;
-                system.runTimeout(() => {
-                    if (!customPlayer.isValid) return;
-                    const aimingAtLocation = getBlockLocationFromRay(customPlayer.dimension, customPlayer.getHeadLocation(), customPlayer.getViewDirection(), 48);
-                    if (aimingAtLocation === undefined) return;
-                    this.setPosition(customPlayer, "position2", aimingAtLocation);
-                }, 1);
-            }
+            event.cancel = true;
+            if (player.getGameMode() !== "Creative") return;
+            this.setPositionFromViewDirection(player, "position2");
         });
 
         world.beforeEvents.playerInteractWithBlock.subscribe((event) => {
+            if (event.itemStack?.typeId !== TOOL_TYPE_ID) return;
             const player = event.player;
-            if (event.itemStack?.typeId === TOOL_TYPE_ID && player.getGameMode() === "Creative") {
-                event.cancel = true;
-                if (!event.isFirstEvent) return;
-                const customPlayer = PlayerCache.get(player);
-                if (customPlayer === undefined) return;
-                system.run(() => this.setPosition(customPlayer, "position2", event.block.location));
-            }
+            event.cancel = true;
+            if (!event.isFirstEvent) return;
+            if (player.getGameMode() !== "Creative") return;
+            const customPlayer = PlayerCache.get(player);
+            if (customPlayer === undefined) return;
+            system.run(() => this.setPosition(customPlayer, "position2", event.block.location));
         });
 
         this.initialised = true;
+    }
+
+    private static setPositionFromViewDirection(player: Player, propertyKey: "position1" | "position2") {
+        const customPlayer = PlayerCache.get(player);
+        if (customPlayer === undefined) return;
+        system.runTimeout(() => {
+            if (!customPlayer.isValid) return;
+            const aimingAtLocation = getBlockLocationFromRay(customPlayer.dimension, customPlayer.getHeadLocation(), customPlayer.getViewDirection(), 48);
+            if (aimingAtLocation === undefined) return;
+            this.setPosition(customPlayer, propertyKey, aimingAtLocation);
+        }, 1);
     }
 
     public static setPosition(customPlayer: CustomPlayer, propertyKey: "position1" | "position2", location: Vector3 | undefined) {
@@ -75,7 +62,7 @@ export class BuildTools {
         tempData[propertyKey] = location;
         if (location === undefined) return;
         // Highlight
-        VFX.highlightBlock(customPlayer.dimension, location);
+        VFX.highlightBlock(customPlayer, location);
         // Message
         if (customPlayer._messageCooldown()) return;
         const oppositePropertyKey = propertyKey === "position1" ? "position2" : "position1";
@@ -114,9 +101,8 @@ export class BuildTools {
     private static async setVolume(customPlayer: CustomPlayer, volume: BlockVolume, blockTypeId: string) {
         const dimension = customPlayer.dimension;
         await loadVolume(dimension, volume);
-
         const mask = customPlayer._tempData.mask;
-        const includeTypes = (mask !== undefined ? [mask] : [])
+        const includeTypes = (mask !== undefined ? [mask] : undefined);
 
         const volumeHeight = volume.getSpan().y;
         const yLevel = volume.getMax().y;
@@ -128,6 +114,34 @@ export class BuildTools {
             dimension.fillBlocks(volumeSlice, blockTypeId, { blockFilter: { includeTypes: includeTypes } });
             volumeSlice.translate({ x: 0, y: -1, z: 0 });
         }
+
+
+        // BlockFilter for dimension.getBlocks is broken in some chunks currently if the filter includes air
+
+        /*
+        const blockIterator = dimension.getBlocks(volume, { includeTypes: includeTypes }).getBlockLocationIterator();
+        for (const location of blockIterator) {
+            dimension.setBlockType(location, blockTypeId)
+        }
+
+        return;
+        const volumeHeight = volume.getSpan().y;
+        const yLevel = volume.getMax().y;
+        const volumeSlice = new BlockVolume({ x: volume.from.x, y: yLevel, z: volume.from.z }, { x: volume.to.x, y: yLevel, z: volume.to.z });
+
+        for (let i = 0; i < volumeHeight; i++) {
+            // Run twice in case water flows
+            const blocks = dimension.getBlocks(volume, { includeTypes: validBlocks }).getBlockLocationIterator();
+            for (const location of blocks) {
+                dimension.setBlockType(location, blockTypeId)
+            }
+            volumeSlice.translate({ x: 0, y: -1, z: 0 });
+            continue;
+            dimension.fillBlocks(volumeSlice, blockTypeId, { blockFilter: { includeTypes: includeTypes } });
+            dimension.fillBlocks(volumeSlice, blockTypeId, { blockFilter: { includeTypes: includeTypes } });
+            volumeSlice.translate({ x: 0, y: -1, z: 0 });
+        }
+        */
     }
 
     private static async replaceVolume(customPlayer: CustomPlayer, volume: BlockVolume, blockTypeId: string, replacementBlockTypeId: string) {
@@ -153,6 +167,15 @@ export class BuildTools {
         }
     }
 }
+
+// DimensionUtilities.forEachBlockOfVolume(volume, (location) => {
+//     const block = dimension.getBlock(location);
+//     if (block === undefined) return;
+//     const typeId = block.typeId;
+//     if (typeId === blockTypeId) return;
+//     if (includeTypes !== undefined && !includeTypes.has(typeId)) return;
+//     dimension.setBlockType(location, blockTypeId);
+// });
 
 export function vector3ToString(vector: Vector3) {
     let string = vector.x + "," + vector.y + "," + vector.z;
@@ -208,6 +231,7 @@ function queueManager() {
             } else {
                 queueManagerRunning = false;
             }
+            world.tickingAreaManager.removeTickingArea("temporaryArea");
         });
     }
 }
