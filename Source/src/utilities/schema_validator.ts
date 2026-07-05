@@ -1,15 +1,48 @@
-
 export class Schema {
-    private _source: CustomType;
+    private static PROPERTY_DEFAULTS: TypeOptions = {
+        allowPartial: false,
+        allowExtensions: false
+    };
+    private source: CustomType;
+    private propertyEntrySubArrays?: Array<[string, ObjectPropertyType]>
+    private propertyKeySet?: Set<string>;
     check: (unknownVariable: any) => boolean;
 
-    constructor(reference: CustomType) {
-        this._source = reference;
+    constructor(reference: ObjectType | ArrayType) {
+        this.source = reference;
+        if (Object.hasOwn(reference, "arrayOf") && !Array.isArray((reference as ArrayType).arrayOf)) (reference as ArrayType).arrayOf = [((reference as ArrayType).arrayOf) as CustomType];
+        else if (Object.hasOwn(reference, "properties")) {
+            const options = (reference as ObjectType).options;
+            if (options === undefined) (reference as ObjectType).options = Schema.PROPERTY_DEFAULTS;
+            else {
+                options.allowPartial = options.allowPartial ?? Schema.PROPERTY_DEFAULTS.allowPartial;
+                options.allowExtensions = options.allowExtensions ?? Schema.PROPERTY_DEFAULTS.allowExtensions;
+            }
+
+            const properties = (reference as ObjectType).properties;
+            this.propertyKeySet = new Set(Object.keys(properties));
+
+            const propertyEntrySubArrays: Array<[string, ObjectPropertyType]> = [];
+            const propertyEntries = Object.entries(properties);
+
+            for (const subArray of propertyEntries) {
+                propertyEntrySubArrays.push(subArray);
+                const typeObject = subArray[1];
+                const propertyType = typeObject.propertyType;
+                if (Array.isArray(propertyType)) continue;
+                typeObject.propertyType = [propertyType];
+            }
+            this.propertyEntrySubArrays = propertyEntrySubArrays;
+        }
         this.check = (unknownVariable: any) => Schema.validateType(unknownVariable, this);
     }
 
     static validateType(unknownVariable: any, referenceType: CustomType): boolean {
-        if (referenceType instanceof Schema) referenceType = referenceType._source;
+        if (referenceType instanceof Schema) {
+            var propertyKeySet = referenceType.propertyKeySet;
+            var propertyEntrySubArrays = referenceType.propertyEntrySubArrays;
+            referenceType = referenceType.source;
+        }
         if (typeof referenceType === "string") {
             // Primitive Types
             if (referenceType === "null") return (unknownVariable === null);
@@ -17,8 +50,7 @@ export class Schema {
         } else if (Object.hasOwn(referenceType, "arrayOf")) {
             // Arrays
             if (!Array.isArray(unknownVariable)) return false;
-            const customType = (referenceType as ArrayType).arrayOf;
-            const typeArray = Array.isArray(customType) ? customType : [customType]
+            const typeArray = (referenceType as ArrayType).arrayOf as Array<CustomType>;
             for (const unknownValue of unknownVariable) {
                 let typeIsValid = false;
                 for (const customType of typeArray) {
@@ -31,35 +63,30 @@ export class Schema {
             return true;
         }
         // referenceType is typeof object:
-        if (typeof unknownVariable !== "object" || unknownVariable === null) return false;
+        if (typeof unknownVariable !== "object" || unknownVariable === null || propertyKeySet === undefined || propertyEntrySubArrays === undefined) return false;
 
-        const { properties, options } = referenceType as ObjectType;
-        const allowPartial = (options?.allowPartial !== undefined ? options.allowPartial : PROPERTY_DEFAULTS.allowPartial);
-        const allowExtensions = (options?.allowExtensions !== undefined ? options.allowExtensions : PROPERTY_DEFAULTS.allowExtensions);
 
-        const propertyKeySet = new Set(Object.keys(properties));
-        const unknownSet = new Set(Object.keys(unknownVariable));
+        const { allowPartial, allowExtensions } = (referenceType as ObjectType).options as TypeOptions;
 
         let allPropertiesRequired = !allowPartial;
         let allPropertiesPresent = true;
 
-        for (const propertyKey of propertyKeySet) {
-            const typeObject = properties[propertyKey];
+        for (const subArray of propertyEntrySubArrays) {
+            const [propertyKey, typeObject] = subArray;
             if (!typeObject.require) allPropertiesRequired = false;
             // Object does not contain key: 
-            if (!unknownSet.has(propertyKey)) {
+            if (!Object.hasOwn(unknownVariable, propertyKey)) {
                 allPropertiesPresent = false;
                 if (typeObject.require === false || allowPartial) continue;
                 return false;
             }
 
-            const propertyType = typeObject.propertyType;
             const unknownValue = unknownVariable[propertyKey];
             let typeIsValid = false;
 
-            const propertyTypeArray = Array.isArray(propertyType) ? propertyType : [propertyType];
+            const propertyTypeArray = typeObject.propertyType as Array<CustomType>;
             for (const propertyType of propertyTypeArray) {
-                if (!Schema.validateType(unknownValue, propertyType)) continue;
+                if (!this.validateType(unknownValue, propertyType)) continue;
                 typeIsValid = true;
                 break;
             }
@@ -70,10 +97,10 @@ export class Schema {
         if (allowExtensions) return true;
 
         // All properties already validated, 
-        if (allPropertiesRequired || allPropertiesPresent) return (unknownSet.size === propertyKeySet.size);
+        if (allPropertiesRequired || allPropertiesPresent) return (Object.keys(unknownVariable).length === propertyKeySet.size);
 
         // Check for extra properties
-        for (const key of unknownSet) {
+        for (const key of Object.keys(unknownVariable)) {
             if (!propertyKeySet.has(key)) return false;
         }
         return true;
@@ -98,8 +125,4 @@ type ArrayType = {
 type ObjectType = {
     options?: Partial<TypeOptions>,
     properties: TypeObject
-};
-const PROPERTY_DEFAULTS: TypeOptions = {
-    allowPartial: false,
-    allowExtensions: false
 };
