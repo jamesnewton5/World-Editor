@@ -210,9 +210,9 @@ export class VolumeMemory extends Debug {
             this.printDebug(`§cVolumeState from dynamic property "${dynamicPropertyId}" is invalid`);
             return;
         }
-        const identifer = (volumeState as VolumeState).id;
+        const identifier = (volumeState as VolumeState).id;
         volumeState = this.createVolumeStateProxy(volumeState as VolumeState);
-        this.memory.set(identifer, volumeState as VolumeState);
+        this.memory.set(identifier, volumeState as VolumeState);
         this.printDebug(`§aRetrieved VolumeState from dynamic property "${dynamicPropertyId}"`);
     }
 
