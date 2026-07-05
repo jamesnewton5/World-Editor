@@ -25,7 +25,8 @@ function createPersistentDataProxy(customPlayer: CustomPlayer, persistentData: C
 
     return new Proxy(persistentData, {
         set(target: CustomPlayerPersistentData, propertyName: keyof typeof customPlayer._persistentData, newValue) {
-            if (target[propertyName] === newValue) return true;
+            const value = target[propertyName];
+            if ((typeof newValue !== "object" || newValue === null) && value === newValue) return true;
             target[propertyName] = newValue;
             schedulePersistentDataSave(customPlayer);
             return true;

@@ -1,12 +1,14 @@
 import { system } from "@minecraft/server";
 import { PACK_NAME } from "./data";
+import { VolumeMemory } from "./volume_memory";
 
 // MARK: Config
 // ----------------------------------------------------------------
 const DEBUG_SETTINGS: Record<string, boolean> = {
     main: false,
     PlayerCache: false,
-    AddonMessage: false
+    AddonMessage: false,
+    VolumeMemory: true
 };
 
 

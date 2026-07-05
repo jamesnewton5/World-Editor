@@ -2,7 +2,7 @@ import { Player, Vector3 } from "@minecraft/server";
 
 // MARK: Player
 export type CustomPlayerPersistentData = {
-    placeholder: null;
+    modifiedVolumeIds: Array<string>;
 };
 export type CustomPlayerTempData = {
     position1: Vector3 | undefined;

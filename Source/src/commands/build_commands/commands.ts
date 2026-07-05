@@ -12,6 +12,14 @@ export const buildCommands = {
         },
         callbackFunction: BuildFunctions.runWandCommand
     },
+    undoCommand: {
+        customCommand: {
+            name: `${PACK_ID}:undo`,
+            description: "Undo your last edit.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.runUndoCommand
+    },
     pos1Command: {
         customCommand: {
             name: `${PACK_ID}:pos1`,

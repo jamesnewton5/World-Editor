@@ -3,6 +3,7 @@ import esbuild from "esbuild";
 const options = {
     format: "esm",
     bundle: true,
+    keepNames: true,
     target: ["es2021"],
     platform: "neutral",
     entryPoints: ["src/main.ts"],

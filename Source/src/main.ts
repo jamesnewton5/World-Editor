@@ -17,7 +17,9 @@ system.beforeEvents.startup.subscribe((event: StartupEvent) => {
 import { PlayerCache } from "./player/player_cache";
 import { BuildTools } from "./build";
 import { CustomPlayer, CustomPlayerCache } from "./types";
+import { VolumeMemory } from "./volume_memory";
 world.afterEvents.worldLoad.subscribe(() => {
+    VolumeMemory.initialise();
     PlayerCache.initialise();
     BuildTools.initialise();
 

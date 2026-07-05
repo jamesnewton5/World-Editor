@@ -33,28 +33,28 @@ export class Schema {
         // referenceType is typeof object:
         if (typeof unknownVariable !== "object" || unknownVariable === null) return false;
 
-        const { types, properties } = referenceType as ObjectType;
-        const allowPartial = (properties?.allowPartial !== undefined ? properties.allowPartial : PROPERTY_DEFAULTS.allowPartial);
-        const allowExtensions = (properties?.allowExtensions !== undefined ? properties.allowExtensions : PROPERTY_DEFAULTS.allowExtensions);
+        const { properties, options } = referenceType as ObjectType;
+        const allowPartial = (options?.allowPartial !== undefined ? options.allowPartial : PROPERTY_DEFAULTS.allowPartial);
+        const allowExtensions = (options?.allowExtensions !== undefined ? options.allowExtensions : PROPERTY_DEFAULTS.allowExtensions);
 
-        const typeSet = new Set(Object.keys(types));
+        const propertyKeySet = new Set(Object.keys(properties));
         const unknownSet = new Set(Object.keys(unknownVariable));
 
         let allPropertiesRequired = !allowPartial;
         let allPropertiesPresent = true;
 
-        for (const typeKey of typeSet) {
-            const typeObject = types[typeKey];
+        for (const propertyKey of propertyKeySet) {
+            const typeObject = properties[propertyKey];
             if (!typeObject.require) allPropertiesRequired = false;
             // Object does not contain key: 
-            if (!unknownSet.has(typeKey)) {
+            if (!unknownSet.has(propertyKey)) {
                 allPropertiesPresent = false;
                 if (typeObject.require === false || allowPartial) continue;
                 return false;
             }
 
             const propertyType = typeObject.propertyType;
-            const unknownValue = unknownVariable[typeKey];
+            const unknownValue = unknownVariable[propertyKey];
             let typeIsValid = false;
 
             const propertyTypeArray = Array.isArray(propertyType) ? propertyType : [propertyType];
@@ -70,11 +70,11 @@ export class Schema {
         if (allowExtensions) return true;
 
         // All properties already validated, 
-        if (allPropertiesRequired || allPropertiesPresent) return (unknownSet.size === typeSet.size);
+        if (allPropertiesRequired || allPropertiesPresent) return (unknownSet.size === propertyKeySet.size);
 
         // Check for extra properties
         for (const key of unknownSet) {
-            if (!typeSet.has(key)) return false;
+            if (!propertyKeySet.has(key)) return false;
         }
         return true;
     }
@@ -85,7 +85,7 @@ type ObjectPropertyType = {
     require?: boolean,
     propertyType: CustomType | Array<CustomType>
 };
-type TypeProperties = {
+type TypeOptions = {
     allowPartial: boolean;
     allowExtensions: boolean;
 };
@@ -96,11 +96,10 @@ type ArrayType = {
     arrayOf: CustomType | Array<CustomType>
 };
 type ObjectType = {
-    properties?: Partial<TypeProperties>,
-    types: TypeObject
+    options?: Partial<TypeOptions>,
+    properties: TypeObject
 };
-const PROPERTY_DEFAULTS: TypeProperties = {
+const PROPERTY_DEFAULTS: TypeOptions = {
     allowPartial: false,
     allowExtensions: false
 };
-

@@ -69,6 +69,9 @@ export const BuildFunctions = new Proxy({
             customPlayer.addItem(toolItemStack);
         }
     },
+    runUndoCommand: function (customPlayer: CustomPlayer) {
+        BuildTools.undo(customPlayer);
+    },
     runPos1Command: function (customPlayer: CustomPlayer) {
         BuildTools.setPosition(customPlayer, "position1", customPlayer.location);
     },

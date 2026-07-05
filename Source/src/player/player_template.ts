@@ -4,7 +4,7 @@ import { CustomPlayerData } from "../types";
 export const customPlayerDataTemplate: CustomPlayerData = {
     // Will get stored automatically when it is updated
     _persistentData: {
-        placeholder: null
+        modifiedVolumeIds: []
     },
     // Only stored in memory
     _tempData: {

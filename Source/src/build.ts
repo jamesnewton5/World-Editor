@@ -6,6 +6,7 @@ import { TOOL_TYPE_ID } from "./data";
 import { VectorMath } from "./vector_math";
 import { DimensionUtilities, getBlockLocationFromRay } from "./utilities/dimension";
 import { VFX } from "./utilities/vfx";
+import { VolumeMemory } from "./volume_memory";
 
 export class BuildTools {
     private static initialised = false;
@@ -86,6 +87,19 @@ export class BuildTools {
         return new BlockVolume(position1, position2);
     }
 
+    public static undo(customPlayer: CustomPlayer) {
+        const modifiedVolumeIds = customPlayer._persistentData.modifiedVolumeIds;
+        if (modifiedVolumeIds.length === 0) {
+            AddonMessage.send(customPlayer, "Nothing to undo", MessageType.Error);
+            return;
+        }
+        const lastVolumeStateId = modifiedVolumeIds[modifiedVolumeIds.length - 1];
+        modifiedVolumeIds.splice(modifiedVolumeIds.length - 1, 1)
+        customPlayer._persistentData.modifiedVolumeIds = modifiedVolumeIds;
+        VolumeMemory.restoreVolumeState(lastVolumeStateId);
+        VolumeMemory.clearSavedState(lastVolumeStateId)
+    }
+
     public static set(customPlayer: CustomPlayer, blockType: BlockType) {
         const volume = this.getSelectedVolume(customPlayer);
         if (volume === undefined) return;
@@ -101,6 +115,12 @@ export class BuildTools {
     private static async setVolume(customPlayer: CustomPlayer, volume: BlockVolume, blockTypeId: string) {
         const dimension = customPlayer.dimension;
         await loadVolume(dimension, volume);
+
+        const volumeStateId = VolumeMemory.saveVolumeState(dimension, volume);
+        const modifiedVolumeIds = customPlayer._persistentData.modifiedVolumeIds;
+        modifiedVolumeIds.push(volumeStateId);
+        customPlayer._persistentData.modifiedVolumeIds = modifiedVolumeIds;
+
         const mask = customPlayer._tempData.mask;
         const includeTypes = (mask !== undefined ? [mask] : undefined);
 
