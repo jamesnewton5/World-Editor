@@ -1,10 +1,13 @@
-import { BlockType, BlockVolume, CustomCommandOrigin, ItemStack, Player, system, world, CustomCommandResult, CustomCommandStatus } from "@minecraft/server";
+import { BlockType, BlockVolume, CustomCommandOrigin, ItemStack, Player, system, world, CustomCommandResult, CustomCommandStatus, Entity, PlatformType, InputButton, ButtonState } from "@minecraft/server";
 import { BuildTools } from "../../build";
 import { AddonMessage, MessageType } from "../../message_formatting";
 import { PlayerCache } from "../../player/player_cache";
 import { EntityUtilities } from "../../utilities/entity";
-import { TOOL_TYPE_ID } from "../../data";
+import { PACK_ID, TOOL_TYPE_ID } from "../../data";
 import { CustomPlayer } from "../../types";
+import { VectorMath } from "../../vector_math";
+import { MinecraftEffectTypes } from "@minecraft/vanilla-data";
+import { EditHistory } from "../../edit_history";
 
 function getCustomPlayer(origin: CustomCommandOrigin) {
     const sourceEntity = origin.sourceEntity;
@@ -69,8 +72,69 @@ export const BuildFunctions = new Proxy({
             customPlayer.addItem(toolItemStack);
         }
     },
+    runHistoryCommand: function (customPlayer: CustomPlayer) {
+        const dimension = customPlayer.dimension;
+        let containerEntity: Entity | undefined;
+        const tempData = customPlayer._tempData;
+        tempData.hasContainerOpen = false;
+        if (tempData.assignedContainerEntityId !== undefined) {
+            const previousContainerEntity = world.getEntity(tempData.assignedContainerEntityId);
+            if (previousContainerEntity !== undefined) {
+                try {
+                    previousContainerEntity.remove();
+                } catch { }
+            }
+        }
+
+        try {
+            containerEntity = dimension.spawnEntity(`${PACK_ID}:container`, customPlayer.getHeadLocation());
+        } catch {
+            AddonMessage.send(customPlayer, "Something went wrong", MessageType.Error);
+            return;
+        }
+        containerEntity.addEffect(MinecraftEffectTypes.Invisibility, 20000000, { amplifier: 0, showParticles: false });
+        const interactInputName = customPlayer.clientSystemInfo.platformType === PlatformType.Desktop ? "Right-click" : "Interact"
+        AddonMessage.send(customPlayer, `${interactInputName} to open the history menu`, MessageType.Info);
+        containerEntity.nameTag = "Edit History";
+
+        const containerId = containerEntity.id;
+        tempData.assignedContainerEntityId = containerId;
+
+        const intervalId = system.runInterval(() => {
+            if (!customPlayer.isValid ||
+                !containerEntity.isValid
+            ) {
+                tempData.hasContainerOpen = false;
+                if (containerEntity.isValid) try { containerEntity.remove(); } catch { }
+                system.clearRun(intervalId);
+                return;
+            }
+
+            containerEntity.teleport(customPlayer.getHeadLocation());
+
+            // Close container
+            if (
+                customPlayer.dimension.id !== dimension.id ||
+                customPlayer.inputInfo.getButtonState(InputButton.Jump) === ButtonState.Pressed ||
+                customPlayer.inputInfo.getButtonState(InputButton.Sneak) === ButtonState.Pressed ||
+                VectorMath.magnitude(customPlayer.inputInfo.getMovementVector()) > 1e-6
+            ) {
+                try { containerEntity.remove(); } catch { }
+                system.clearRun(intervalId);
+                if (!tempData.hasContainerOpen) AddonMessage.send(customPlayer, "Cancelled", MessageType.Warning);
+                else tempData.hasContainerOpen = false;
+                return;
+            }
+        });
+    },
+    runClearEditHistoryCommand: function (customPlayer: CustomPlayer) {
+        EditHistory.clearEditHistory(customPlayer);
+    },
     runUndoCommand: function (customPlayer: CustomPlayer) {
-        BuildTools.undo(customPlayer);
+        EditHistory.undo(customPlayer);
+    },
+    runRedoCommand: function (customPlayer: CustomPlayer) {
+        EditHistory.redo(customPlayer);
     },
     runPos1Command: function (customPlayer: CustomPlayer) {
         BuildTools.setPosition(customPlayer, "position1", customPlayer.location);

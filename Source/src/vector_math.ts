@@ -1,3 +1,5 @@
+import { Vector2, VectorXZ } from "@minecraft/server";
+
 type Vector3 = {
 	x: number;
 	y: number;
@@ -152,8 +154,9 @@ export class VectorMath {
 		return this.normalise(flatVector);
 	}
 
-	public static magnitude(vector: Vector3): number {
-		return Math.hypot(vector.x, vector.y, vector.z);
+	public static magnitude(vector: Vector3 | Vector2 | VectorXZ): number {
+		if (Object.keys(vector).length === 3 && "x" in vector && "y" in vector && "z" in vector) return Math.hypot(vector.x, vector.y, vector.z);
+		return Math.hypot(...Object.values(vector));
 	}
 
 	static magnitudeSquared(vector: Vector3) {

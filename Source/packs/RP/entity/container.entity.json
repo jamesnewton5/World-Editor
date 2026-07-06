@@ -1,0 +1,23 @@
+{
+	"format_version": "1.10.0",
+	"minecraft:client_entity": {
+		"description": {
+			"identifier": "world-editor:container",
+			"materials": {
+				"default": "entity_alphatest"
+			},
+			"textures": {
+				"default": "textures/world-editor/ui/blank"
+			},
+			"geometry": {
+				"default": "geometry.world-editor.empty"
+			},
+			"scripts": {
+				"should_update_effects_offscreen": "1.0"
+			},
+			"render_controllers": [
+				"controller.render.default"
+			]
+		}
+	}
+}

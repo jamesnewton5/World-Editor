@@ -2,6 +2,7 @@ import { InputPermissionCategory, Player, system, world } from "@minecraft/serve
 import { createCustomPlayer } from "./player_constructor";
 import { CustomPlayer, CustomPlayerCache } from "../types";
 import { Debug } from "../debug";
+import { EditHistory } from "../edit_history";
 
 
 type PlayerTickCallback = (customPlayer: CustomPlayer, playerCache: CustomPlayerCache) => void;
@@ -50,6 +51,7 @@ export class PlayerCache extends Debug {
         if (!player.isValid) return;
         this.resetPlayer(player);
         const customPlayer = createCustomPlayer(player);
+        EditHistory.validateEditHistory(customPlayer);
         this.map.set(customPlayer.id, customPlayer);
         this.printDebug(`added ${customPlayer.nameTag}`);
     }

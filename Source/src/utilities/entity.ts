@@ -1,6 +1,14 @@
-import { Entity, EntityComponentTypes, EquipmentSlot, ItemStack } from "@minecraft/server";
+import { Container, Entity, EntityComponentTypes, EquipmentSlot, ItemStack } from "@minecraft/server";
 
 export class EntityUtilities {
+    public static getContainer(entity: Entity): Container | undefined {
+        if (!entity.isValid) return undefined;
+        const inventoryComponent = entity.getComponent(EntityComponentTypes.Inventory);
+        if (inventoryComponent === undefined) return undefined;
+        const container = inventoryComponent.container;
+        return container;
+    }
+
     public static getHeldItem(entity: Entity): ItemStack | undefined {
         if (!entity.isValid) return undefined;
         const equippableComponent = entity.getComponent(EntityComponentTypes.Equippable);

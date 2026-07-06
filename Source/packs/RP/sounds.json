@@ -1,0 +1,16 @@
+{
+	"entity_sounds": {
+		"entities": {
+			"world-editor:container": {
+				"pitch": 1,
+				"volume": 0,
+				"events": {
+					"ambient": "",
+					"death": "",
+					"hurt": "",
+					"step": ""
+				}
+			}
+		}
+	}
+}

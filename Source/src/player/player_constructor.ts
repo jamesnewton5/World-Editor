@@ -2,13 +2,16 @@ import { Player } from "@minecraft/server";
 import { customPlayerDataTemplate } from "./player_template";
 import { deepClone, queueMicrotask } from "../general";
 import { CustomPlayer, CustomPlayerData, CustomPlayerPersistentData } from "../types";
+import { VolumeMemory } from "../volume_memory";
 
 export function createCustomPlayer(player: Player): CustomPlayer {
     // Create data
     const defaultCustomPlayerData = deepClone(customPlayerDataTemplate);
     const storedPersistentData = retrievePersistentData(player);
+    storedPersistentData.editHistory = new Set(storedPersistentData.editHistory);
 
     const customPlayerData: CustomPlayerData = {
+        _savePersistentData: customPlayerDataTemplate._savePersistentData,
         _persistentData: storedPersistentData,
         _tempData: defaultCustomPlayerData._tempData,
         _messageCooldown: customPlayerDataTemplate._messageCooldown,
@@ -16,7 +19,9 @@ export function createCustomPlayer(player: Player): CustomPlayer {
     };
     // Create custom player & proxy for saving persistent data
     const customPlayer = Object.assign(player, customPlayerData);
+
     customPlayer._persistentData = createPersistentDataProxy(customPlayer, customPlayer._persistentData);
+    customPlayer._savePersistentData = () => savePersistentData(customPlayer);
     return customPlayer;
 }
 
@@ -43,7 +48,8 @@ function schedulePersistentDataSave(customPlayer: CustomPlayer) {
 function savePersistentData(customPlayer: CustomPlayer) {
     customPlayer._persistentDataSaveScheduled = false;
     if (!customPlayer.isValid) return;
-    const persistentData = customPlayer._persistentData;
+    const persistentData = { ...customPlayer._persistentData } as any;
+    persistentData.editHistory = Array.from(customPlayer._persistentData.editHistory)
     const persistentDataString = JSON.stringify(persistentData);
     customPlayer.setDynamicProperty("_persistentData", persistentDataString);
 }

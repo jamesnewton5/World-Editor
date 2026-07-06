@@ -2,17 +2,19 @@ import { system, Vector3 } from "@minecraft/server";
 import { CustomPlayerData } from "../types";
 
 export const customPlayerDataTemplate: CustomPlayerData = {
+    _savePersistentData: () => { },
     // Will get stored automatically when it is updated
     _persistentData: {
-        modifiedVolumeIds: []
+        editHistory: new Set()
     },
     // Only stored in memory
     _tempData: {
         position1: undefined,
         position2: undefined,
-        mostRecentBlockBrokenWithToolTick: 0,
         mask: undefined,
-        lastInfoMessageTick: 0
+        lastInfoMessageTick: 0,
+        assignedContainerEntityId: undefined,
+        hasContainerOpen: false
     },
     _messageCooldown: function messageCooldown() {
         const MESSAGE_COOLDOWN_TICKS = 5;

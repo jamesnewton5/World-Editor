@@ -8,7 +8,7 @@ const DEBUG_SETTINGS: Record<string, boolean> = {
     main: false,
     PlayerCache: false,
     AddonMessage: false,
-    VolumeMemory: true
+    VolumeMemory: false
 };
 
 

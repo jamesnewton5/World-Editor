@@ -99,6 +99,34 @@ export class VolumeMemory extends Debug {
         this.printDebug("Updated stored memory index");
     }
 
+    private static clearMemory(): void {
+        this.printDebug("§eClearing memory...");
+        for (const identifier of this.memory.keys()) {
+            this.memory.delete(identifier);
+        }
+        if (this.currentIdentifier === undefined) {
+            this.currentIdentifier = world.getDynamicProperty(this.NONCE_DYNAMIC_PROPERTY_ID) as number | undefined;
+            if (this.currentIdentifier === undefined) return;
+        }
+
+        const structureManager = world.structureManager;
+        for (let i = 0; i <= this.currentIdentifier; i++) {
+            const identifier = i.toString();
+            const dynamicPropertyId = this.getDynamicPropertyId(identifier);
+            const structureId = this.getStructureId(identifier);
+            world.setDynamicProperty(dynamicPropertyId, undefined);
+            const structure = structureManager.get(structureId);
+            if (structure === undefined) continue;
+            try {
+                structureManager.delete(structure);
+                this.printDebug(`§cDeleted structure with identifier ${structureId}`);
+            } catch { }
+        }
+        this.currentIdentifier = 0;
+        world.setDynamicProperty(this.NONCE_DYNAMIC_PROPERTY_ID, 0);
+        this.printDebug("§eMemory cleared");
+    }
+
     private static restoreMemoryIndex(): void {
         let storedMemoryIndex: Array<string> | undefined = undefined;
         const memoryIndexString = world.getDynamicProperty(this.MEMORY_INDEX_DYNAMIC_PROPERTY_ID) as string | undefined;
@@ -146,7 +174,8 @@ export class VolumeMemory extends Debug {
         this.restoreMemoryIndex();
         this.printDebug(`Found ${this.memoryIndex.size} stored dynamic property IDs`);
         for (const dynamicPropertyId of this.memoryIndex) {
-            this.retrieveVolumeState(dynamicPropertyId);
+            const result = this.loadVolumeState(dynamicPropertyId);
+            if (!result) this.memoryIndex.delete(dynamicPropertyId);
         }
 
         this.memory = new Proxy(this.memory, {
@@ -156,6 +185,7 @@ export class VolumeMemory extends Debug {
                 if (propertyName === "set" || propertyName === "delete") {
                     VolumeMemory.printDebug(`Returning modified method from proxied memory map`);
                     return (...args: Array<any>) => {
+                        const volumeState = propertyName === "set" ? (args[1] as VolumeState) : VolumeMemory.memory.get(args[0]);
                         const dynamicPropertyId = propertyName === "set" ? (args[1] as VolumeState).dynamicPropertyId : VolumeMemory.memory.get(args[0])?.dynamicPropertyId;
                         value(...args);
                         if (dynamicPropertyId === undefined) return;
@@ -165,8 +195,9 @@ export class VolumeMemory extends Debug {
                                 VolumeMemory.printDebug(`Added dynamic property ID "${dynamicPropertyId}"`);
                             } else {
                                 VolumeMemory.memoryIndex.delete(dynamicPropertyId);
-                                world.setDynamicProperty(dynamicPropertyId, undefined);
                                 VolumeMemory.printDebug(`Deleted dynamic property ID "${dynamicPropertyId}"`);
+                                if (volumeState === undefined) return;
+                                VolumeMemory.deleteVolumeState(volumeState);
                             }
                         });
                     }
@@ -192,28 +223,38 @@ export class VolumeMemory extends Debug {
         return `${this.CLASS_NAME}_${identifier}`;
     }
 
+    private static deleteVolumeState(volumeState: VolumeState) {
+        const structureManager = world.structureManager;
+        const structureIdentifier = volumeState.structureId;
+        if (structureManager.get(structureIdentifier) !== undefined) {
+            structureManager.delete(structureIdentifier);
+        }
+        world.setDynamicProperty(volumeState.dynamicPropertyId, undefined);
+        this.printDebug(`§cDeleted VolumeState "${volumeState.id}"`);
+    }
+
     private static storeVolumeState(volumeState: VolumeState) {
         const volumeStateString = JSON.stringify(volumeState);
         world.setDynamicProperty(volumeState.dynamicPropertyId, volumeStateString);
         this.printDebug(`Storing VolumeState for ID "${volumeState.id}"`);
     }
 
-    private static retrieveVolumeState(dynamicPropertyId: string) {
+    private static loadVolumeState(dynamicPropertyId: string): boolean {
         const volumeStateString = world.getDynamicProperty(dynamicPropertyId) as string | undefined;
         if (volumeStateString === undefined) {
             this.printDebug(`Could not access VolumeState, dynamic property "${dynamicPropertyId}" is undefined`);
-            return;
+            return false;
         }
         let volumeState: unknown = JSON.parse(volumeStateString) as unknown;
         const isValid = SchemaVolumeState.check(volumeState);
         if (!isValid) {
             this.printDebug(`§cVolumeState from dynamic property "${dynamicPropertyId}" is invalid`);
-            return;
+            return false;
         }
-        const identifier = (volumeState as VolumeState).id;
         volumeState = this.createVolumeStateProxy(volumeState as VolumeState);
-        this.memory.set(identifier, volumeState as VolumeState);
+        this.memory.set((volumeState as VolumeState).id, volumeState as VolumeState);
         this.printDebug(`§aRetrieved VolumeState from dynamic property "${dynamicPropertyId}"`);
+        return true;
     }
 
     public static saveVolumeState(dimension: Dimension, volume: BlockVolume, identifier?: string): string {
@@ -231,6 +272,7 @@ export class VolumeMemory extends Debug {
             size: volume.getSpan(),
             lastAccessedTick: system.currentTick
         });
+        this.storeVolumeState(volumeState);
         this.memory.set(identifier, volumeState);
         this.printDebug(`§aSaved volume state at: ` + Object.values(volume.getMin()).join(", "));
         return identifier;
@@ -238,7 +280,7 @@ export class VolumeMemory extends Debug {
 
     private static createVolumeStateProxy(volumeState: VolumeState): VolumeState {
         return new Proxy(volumeState, {
-            get(target: VolumeState, propertyName: keyof VolumeState) {
+            set(target: VolumeState, propertyName: keyof VolumeState, newValue: any) {
                 volumeState.lastAccessedTick = system.currentTick;
                 if (!VolumeMemory.storageScheduledFor.has(target)) {
                     VolumeMemory.storageScheduledFor.add(target);
@@ -247,9 +289,13 @@ export class VolumeMemory extends Debug {
                         VolumeMemory.storageScheduledFor.delete(target);
                     });
                 }
-                return Reflect.get(target, propertyName);
+                return true;
             }
-        })
+        });
+    }
+
+    public static has(identifier: string): boolean {
+        return this.memory.has(identifier);
     }
 
     public static restoreVolumeState(identifier: string): boolean {
@@ -274,7 +320,7 @@ export class VolumeMemory extends Debug {
         }
         const tempStructureId = `${volumeState.structureId}_temp`;
         structureManager.delete(tempStructureId);
-        const structureClone = structure.saveAs(tempStructureId);
+        const structureClone = structure.saveAs(tempStructureId, StructureSaveMode.Memory);
         // Save current state to allow redo/undo
         const location = volumeState.location;
         const volume = new BlockVolume(location, VectorMath.add(location, VectorMath.subtract(volumeState.size, 1)));

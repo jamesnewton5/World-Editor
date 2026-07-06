@@ -12,6 +12,22 @@ export const buildCommands = {
         },
         callbackFunction: BuildFunctions.runWandCommand
     },
+    historyCommand: {
+        customCommand: {
+            name: `${PACK_ID}:history`,
+            description: "Open the edit history menu.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.runHistoryCommand
+    },
+    clearEditHistoryCommand: {
+        customCommand: {
+            name: `${PACK_ID}:clear_edit_history`,
+            description: "Clear your edit history.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.runClearEditHistoryCommand
+    },
     undoCommand: {
         customCommand: {
             name: `${PACK_ID}:undo`,
@@ -19,6 +35,14 @@ export const buildCommands = {
             permissionLevel: CommandPermissionLevel.Admin
         },
         callbackFunction: BuildFunctions.runUndoCommand
+    },
+    redoCommand: {
+        customCommand: {
+            name: `${PACK_ID}:redo`,
+            description: "Redo your last edit.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.runRedoCommand
     },
     pos1Command: {
         customCommand: {
