@@ -3,11 +3,11 @@ import { Entity, Player, PlayerInteractWithEntityAfterEvent, PlayerInteractWithE
 // MARK: Player
 export type CustomPlayerPersistentData = {
     editHistory: EditHistory;
+    clipboard: ClipboardInfo | null;
 };
 export type CustomPlayerTempData = {
     position1: Vector3 | undefined;
     position2: Vector3 | undefined;
-    clipboard: ClipboardInfo | undefined;
     mask: string | undefined;
     lastInfoMessageTick: number;
     assignedContainerEntityId: string | undefined;

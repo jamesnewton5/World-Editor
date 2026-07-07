@@ -104,13 +104,13 @@ export class BuildTools {
             offset: VectorMath.subtract(volume.getMin(), customPlayer.location),
             size: volume.getSpan()
         };
-        customPlayer._tempData.clipboard = clipboardInfo;
+        customPlayer._persistentData.clipboard = clipboardInfo;
         AddonMessage.send(customPlayer, "Selected copied to clipboard", MessageType.Info);
     }
 
     public static async paste(customPlayer: CustomPlayer) {
-        const clipboardInfo = customPlayer._tempData.clipboard;
-        if (clipboardInfo === undefined) {
+        const clipboardInfo = customPlayer._persistentData.clipboard;
+        if (clipboardInfo === null) {
             AddonMessage.send(customPlayer, "Clipboard is empty", MessageType.Error);
             return;
         }
@@ -121,7 +121,10 @@ export class BuildTools {
             AddonMessage.send(customPlayer, "Could not get selection from clipboard", MessageType.Error);
             return;
         }
+        const volume = new BlockVolume(origin, VectorMath.subtract(VectorMath.add(origin, clipboardInfo.size), 1));
+        EditHistory.add(customPlayer, volume, "Pasted");
         structureManager.place(structure, customPlayer.dimension, origin);
+
         AddonMessage.send(customPlayer, "Pasted selection", MessageType.Info);
     }
 

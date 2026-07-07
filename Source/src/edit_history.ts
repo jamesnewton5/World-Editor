@@ -40,9 +40,9 @@ export class EditHistory extends Debug {
         return selectedEditInfo;
     }
 
-    public static add(customPlayer: CustomPlayer, volume: BlockVolume, actionName: string, blockTypeId: string) {
-        const title = this.getTitle(actionName, blockTypeId, volume);
-        const description = this.getDescription(actionName, blockTypeId, volume);
+    public static add(customPlayer: CustomPlayer, volume: BlockVolume, actionName: string, blockTypeId?: string) {
+        const title = this.getTitle(actionName, volume, blockTypeId);
+        const description = this.getDescription(volume);
         const editInfo: EditInfo = {
             reversed: false,
             title: title,
@@ -54,17 +54,25 @@ export class EditHistory extends Debug {
         customPlayer._savePersistentData();
     }
 
-    private static getTitle(actionName: string, blockTypeId: string, volume: BlockVolume) {
-        let blockName = blockTypeId.split(":").length > 0 ? blockTypeId.split(":")[1] : blockTypeId;
-        blockName = blockName[0].toUpperCase() + blockName.slice(1);
-        blockName = blockName.replaceAll("_", " ");
-        const preposition = actionName === "Set" ? "to" : "with";
-        // const title = `§r${actionName} ${volume.getCapacity()} blocks ${preposition} ${blockName}`;
-        const title = `§r§f${actionName} ${preposition} ${blockName}`;
-        return title;
+    private static getTitle(actionName: string, volume: BlockVolume, blockTypeId?: string): string {
+        if (blockTypeId !== undefined) {
+            let blockName = blockTypeId.split(":").length > 0 ? blockTypeId.split(":")[1] : blockTypeId;
+            blockName = blockName[0].toUpperCase() + blockName.slice(1);
+            blockName = blockName.replaceAll("_", " ");
+            const preposition = actionName === "Set" ? "to" : "with";
+            // const title = `§r${actionName} ${volume.getCapacity()} blocks ${preposition} ${blockName}`;
+            const title = `§r§f${actionName} ${preposition} ${blockName}`;
+            return title;
+        } else {
+            if (actionName === "Pasted") {
+                return `Pasted at ${Object.values(volume.getMin()).join(", ")}`;
+            } else {
+                return "unknown";
+            }
+        }
     }
 
-    private static getDescription(actionName: string, blockTypeId: string, volume: BlockVolume) {
+    private static getDescription(volume: BlockVolume) {
         const description = `§7From (${Object.values(volume.getMin()).join(", ")})\n§7To (${Object.values(volume.getMax()).join(", ")})`;
         return description;
     }

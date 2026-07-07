@@ -5,13 +5,13 @@ export const customPlayerDataTemplate: CustomPlayerData = {
     _savePersistentData: () => { },
     // Will get stored automatically when it is updated
     _persistentData: {
-        editHistory: new Set()
+        editHistory: new Set(),
+        clipboard: null,
     },
     // Only stored in memory
     _tempData: {
         position1: undefined,
         position2: undefined,
-        clipboard: undefined,
         mask: undefined,
         lastInfoMessageTick: 0,
         assignedContainerEntityId: undefined,
