@@ -98,7 +98,7 @@ export class EditHistory extends Debug {
 
     private static removeOverflow(customPlayer: CustomPlayer) {
         const editHistory = customPlayer._persistentData.editHistory;
-        if (editHistory.size > this.MAX_EDIT_HISTORY_ITEMS) return;
+        if (editHistory.size <= this.MAX_EDIT_HISTORY_ITEMS) return;
         const editHistoryArray = Array.from(editHistory);
         for (let i = 0; i < editHistoryArray.length - this.MAX_EDIT_HISTORY_ITEMS; i++) {
             const editInfo = editHistoryArray[i];
