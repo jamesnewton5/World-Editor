@@ -150,31 +150,15 @@ export class EditHistory extends Debug {
                 let itemStack = container.getItem(i);
                 if (itemStack !== undefined) continue;
                 const editInfo = (editHistoryArray[i] as EditInfo);
-                const undoing = !editInfo.reversed;
-                // if (!undoing) this.toggleEdit(customPlayer, editInfo);
 
-                let editsToToggle = [];
-
-                for (let j = i; j < editHistoryArray.length; j++) {
-                    if (j === i) continue;
+                const editsToToggle = [];
+                for (let j = i + 1; j < editHistoryArray.length; j++) {
                     const editInfo = editHistoryArray[j];
-                    // If redoing, don't redo things before it
-                    if (!undoing && j < i && editInfo.reversed) continue;
-
-
-
-
-                    // If undoing, first undo everything after
-
-                    if (j < i && !editInfo.reversed) continue; // Make everything before not undone
-                    if (j > i && editInfo.reversed) continue; // Undo everything after
-                    //if (editInfo.reversed && undoing) continue;
+                    if (editInfo.reversed) continue; // Undo everything after
                     editsToToggle.unshift(editInfo);
                 }
 
-
                 for (const editInfo of editsToToggle) {
-                    console.warn("toggled", editInfo.title)
                     this.toggleEdit(customPlayer, editInfo);
                 }
 
