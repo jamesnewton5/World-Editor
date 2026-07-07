@@ -155,6 +155,12 @@ export const BuildFunctions = new Proxy({
         BuildTools.setPosition(customPlayer, "position2", undefined);
         AddonMessage.send(customPlayer, `Selection cleared`, MessageType.Info);
     },
+    runCopyCommand: function (customPlayer: CustomPlayer) {
+        BuildTools.copy(customPlayer);
+    },
+    runPasteCommand: function (customPlayer: CustomPlayer) {
+        BuildTools.paste(customPlayer);
+    },
     runSetCommand: function (customPlayer: CustomPlayer, blockType: BlockType) {
         BuildTools.set(customPlayer, blockType);
     },

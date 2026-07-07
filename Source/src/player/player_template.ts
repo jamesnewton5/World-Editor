@@ -11,6 +11,7 @@ export const customPlayerDataTemplate: CustomPlayerData = {
     _tempData: {
         position1: undefined,
         position2: undefined,
+        clipboard: undefined,
         mask: undefined,
         lastInfoMessageTick: 0,
         assignedContainerEntityId: undefined,

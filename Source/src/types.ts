@@ -7,6 +7,7 @@ export type CustomPlayerPersistentData = {
 export type CustomPlayerTempData = {
     position1: Vector3 | undefined;
     position2: Vector3 | undefined;
+    clipboard: ClipboardInfo | undefined;
     mask: string | undefined;
     lastInfoMessageTick: number;
     assignedContainerEntityId: string | undefined;
@@ -27,6 +28,12 @@ export type EditInfo = {
     title: string;
     description: string;
     volumeStateId: string;
+};
+
+export type ClipboardInfo = {
+    structureId: string;
+    offset: Vector3;
+    size: Vector3;
 };
 
 // MARK: Entity

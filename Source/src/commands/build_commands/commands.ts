@@ -12,6 +12,22 @@ export const buildCommands = {
         },
         callbackFunction: BuildFunctions.runWandCommand
     },
+    copyCommand: {
+        customCommand: {
+            name: `${PACK_ID}:copy`,
+            description: "Copy selection to the clipboard.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.runCopyCommand
+    },
+    pasteCommand: {
+        customCommand: {
+            name: `${PACK_ID}:paste`,
+            description: "Paste selection from clipboard.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.runPasteCommand
+    },
     historyCommand: {
         customCommand: {
             name: `${PACK_ID}:history`,

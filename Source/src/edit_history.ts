@@ -6,7 +6,7 @@ import { AddonMessage, MessageType } from "./message_formatting";
 import { EntityUtilities } from "./utilities/entity";
 
 export class EditHistory extends Debug {
-    private static MAX_EDIT_HISTORY_ITEMS = 9;
+    private static MAX_EDIT_HISTORY_ITEMS = 18;
 
     public static undo(customPlayer: CustomPlayer) {
         const editInfo = this.getEditInfoFromUndoOrRedo(customPlayer, "undo");

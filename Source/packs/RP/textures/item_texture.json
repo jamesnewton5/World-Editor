@@ -4,6 +4,9 @@
 	"texture_data": {
 		"world-editor:wand": {
 			"textures": "textures/world-editor/items/wand"
+		},
+		"world-editor:clipboard": {
+			"textures": "textures/world-editor/items/clipboard"
 		}
 	}
 }

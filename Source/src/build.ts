@@ -1,7 +1,7 @@
-import { world, system, BlockVolume, Direction, Vector3, Dimension, BlockType, EntitySwingSource, Player } from "@minecraft/server";
+import { world, system, BlockVolume, Direction, Vector3, Dimension, BlockType, EntitySwingSource, Player, StructureSaveMode } from "@minecraft/server";
 import { AddonMessage, MessageType } from "./message_formatting";
 import { PlayerCache } from "./player/player_cache";
-import { CustomPlayer } from "./types";
+import { ClipboardInfo, CustomPlayer } from "./types";
 import { TOOL_TYPE_ID } from "./data";
 import { VectorMath } from "./vector_math";
 import { DimensionUtilities, getBlockLocationFromRay } from "./utilities/dimension";
@@ -86,6 +86,43 @@ export class BuildTools {
             return undefined;
         }
         return new BlockVolume(position1, position2);
+    }
+
+    public static async copy(customPlayer: CustomPlayer) {
+        const volume = this.getSelectedVolume(customPlayer);
+        if (volume === undefined) return;
+        const dimension = customPlayer.dimension;
+        await loadVolume(dimension, volume);
+        const structureIdentifier = `mystructure:_${customPlayer.nameTag}_1`;
+        const structureManager = world.structureManager;
+        if (structureManager.get(structureIdentifier)) {
+            try { structureManager.delete(structureIdentifier); } catch { }
+        }
+        structureManager.createFromWorld(structureIdentifier, dimension, volume.getMin(), volume.getMax(), { saveMode: StructureSaveMode.Memory });
+        const clipboardInfo: ClipboardInfo = {
+            structureId: structureIdentifier,
+            offset: VectorMath.subtract(volume.getMin(), customPlayer.location),
+            size: volume.getSpan()
+        };
+        customPlayer._tempData.clipboard = clipboardInfo;
+        AddonMessage.send(customPlayer, "Selected copied to clipboard", MessageType.Info);
+    }
+
+    public static async paste(customPlayer: CustomPlayer) {
+        const clipboardInfo = customPlayer._tempData.clipboard;
+        if (clipboardInfo === undefined) {
+            AddonMessage.send(customPlayer, "Clipboard is empty", MessageType.Error);
+            return;
+        }
+        const origin = VectorMath.add(customPlayer.location, clipboardInfo.offset);
+        const structureManager = world.structureManager;
+        const structure = structureManager.get(clipboardInfo.structureId);
+        if (structure === undefined) {
+            AddonMessage.send(customPlayer, "Could not get selection from clipboard", MessageType.Error);
+            return;
+        }
+        structureManager.place(structure, customPlayer.dimension, origin);
+        AddonMessage.send(customPlayer, "Pasted selection", MessageType.Info);
     }
 
     public static set(customPlayer: CustomPlayer, blockType: BlockType) {

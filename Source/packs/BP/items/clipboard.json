@@ -1,0 +1,36 @@
+{
+	"format_version": "1.26.10",
+	"minecraft:item": {
+		"description": {
+			"identifier": "world-editor:clipboard",
+			"menu_category": {
+				"category": "equipment"
+			}
+		},
+		"components": {
+			"minecraft:max_stack_size": {
+				"value": 1
+			},
+			"minecraft:icon": {
+				"textures": {
+					"default": "world-editor:clipboard"
+				}
+			},
+			"minecraft:use_modifiers": {
+				"movement_modifier": 1,
+				"use_duration": 1000000.0
+			},
+			"minecraft:can_destroy_in_creative": false,
+			"minecraft:use_animation": "none",
+			"minecraft:swing_duration": {
+				"value": 0.2
+			},
+			"minecraft:food": {
+				"can_always_eat": true,
+				"nutrition": 0,
+				"saturation_modifier": 0,
+				"using_converts_to": "world-editor:clipboard"
+			}
+		}
+	}
+}
