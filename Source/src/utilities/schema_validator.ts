@@ -10,8 +10,8 @@ export class Schema {
 
     constructor(reference: ObjectType | ArrayType) {
         this.source = reference;
-        if (Object.hasOwn(reference, "arrayOf") && !Array.isArray((reference as ArrayType).arrayOf)) (reference as ArrayType).arrayOf = [((reference as ArrayType).arrayOf) as CustomType];
-        else if (Object.hasOwn(reference, "properties")) {
+        if ("arrayOf" in reference && !Array.isArray((reference as ArrayType).arrayOf)) (reference as ArrayType).arrayOf = [((reference as ArrayType).arrayOf) as CustomType];
+        else if ("properties" in reference) {
             const options = (reference as ObjectType).options;
             if (options === undefined) (reference as ObjectType).options = Schema.PROPERTY_DEFAULTS;
             else {
@@ -47,7 +47,7 @@ export class Schema {
             // Primitive Types
             if (referenceType === "null") return (unknownVariable === null);
             return (typeof unknownVariable === referenceType);
-        } else if (Object.hasOwn(referenceType, "arrayOf")) {
+        } else if ("arrayOf" in referenceType) {
             // Arrays
             if (!Array.isArray(unknownVariable)) return false;
             const typeArray = (referenceType as ArrayType).arrayOf as Array<CustomType>;
@@ -75,7 +75,7 @@ export class Schema {
             const [propertyKey, typeObject] = subArray;
             if (!typeObject.require) allPropertiesRequired = false;
             // Object does not contain key: 
-            if (!Object.hasOwn(unknownVariable, propertyKey)) {
+            if (!(propertyKey in unknownVariable)) {
                 allPropertiesPresent = false;
                 if (typeObject.require === false || allowPartial) continue;
                 return false;

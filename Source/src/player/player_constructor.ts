@@ -18,10 +18,23 @@ export function createCustomPlayer(player: Player): CustomPlayer {
         _persistentDataSaveScheduled: defaultCustomPlayerData._persistentDataSaveScheduled
     };
     // Create custom player & proxy for saving persistent data
-    const customPlayer = Object.assign(player, customPlayerData);
+    let customPlayer = Object.assign(player, customPlayerData);
 
     customPlayer._persistentData = createPersistentDataProxy(customPlayer, customPlayer._persistentData);
     customPlayer._savePersistentData = () => savePersistentData(customPlayer);
+    customPlayer = new Proxy(customPlayer, {
+        get(target: CustomPlayer, propertyName: keyof typeof customPlayer) {
+            let value = Reflect.get(target, propertyName);
+            if (value === undefined) return undefined;
+            if (typeof value === "function") value = value.bind(target);
+            if (propertyName !== "getHeadLocation") return value;
+            return () => {
+                const headLocation = (value as Function)();
+                headLocation.y += 0.1;
+                return headLocation;
+            }
+        }
+    });
     return customPlayer;
 }
 

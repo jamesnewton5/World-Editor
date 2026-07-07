@@ -41,7 +41,7 @@ export class BuildTools {
             if (player.getGameMode() !== "Creative") return;
             const customPlayer = PlayerCache.get(player);
             if (customPlayer === undefined) return;
-            //  system.run(() => this.setPosition(customPlayer, "position2", event.block.location));
+            system.run(() => this.setPosition(customPlayer, "position2", event.block.location));
         });
 
         this.initialised = true;
@@ -104,7 +104,7 @@ export class BuildTools {
         const dimension = customPlayer.dimension;
         await loadVolume(dimension, volume);
 
-        EditHistory.add(customPlayer, volume, `Set ${blockTypeId.split(":").length > 0 ? blockTypeId.split(":")[1] : blockTypeId}`);
+        EditHistory.add(customPlayer, volume, "Set", blockTypeId);
 
         const mask = customPlayer._tempData.mask;
         const includeTypes = (mask !== undefined ? [mask] : undefined);
@@ -153,7 +153,7 @@ export class BuildTools {
         const dimension = customPlayer.dimension;
         await loadVolume(dimension, volume);
 
-        EditHistory.add(customPlayer, volume, `Replaced with ${blockTypeId.split(":").length > 0 ? blockTypeId.split(":")[1] : blockTypeId}`);
+        EditHistory.add(customPlayer, volume, "Replaced", replacementBlockTypeId);
 
         const mask = customPlayer._tempData.mask;
         const includeTypes = (mask !== undefined ? [mask] : []);

@@ -74,55 +74,63 @@ export const BuildFunctions = new Proxy({
     },
     runHistoryCommand: function (customPlayer: CustomPlayer) {
         const dimension = customPlayer.dimension;
-        let containerEntity: Entity | undefined;
+
+        // Remove previous container
         const tempData = customPlayer._tempData;
         tempData.hasContainerOpen = false;
         if (tempData.assignedContainerEntityId !== undefined) {
             const previousContainerEntity = world.getEntity(tempData.assignedContainerEntityId);
-            if (previousContainerEntity !== undefined) {
-                try {
-                    previousContainerEntity.remove();
-                } catch { }
-            }
+            if (previousContainerEntity?.isValid) previousContainerEntity.remove();
         }
 
-        try {
-            containerEntity = dimension.spawnEntity(`${PACK_ID}:container`, customPlayer.getHeadLocation());
-        } catch {
+
+        const headLocation = customPlayer.getHeadLocation();
+        if (!dimension.isChunkLoaded(headLocation)) {
             AddonMessage.send(customPlayer, "Something went wrong", MessageType.Error);
             return;
         }
+        const containerEntity = dimension.spawnEntity(`${PACK_ID}:container`, customPlayer.getHeadLocation());
         containerEntity.addEffect(MinecraftEffectTypes.Invisibility, 20000000, { amplifier: 0, showParticles: false });
+        containerEntity.nameTag = "Edit History"; // For inventory screen title
+
+        // Prompt
         const interactInputName = customPlayer.clientSystemInfo.platformType === PlatformType.Desktop ? "Right-click" : "Interact"
         AddonMessage.send(customPlayer, `${interactInputName} to open the history menu`, MessageType.Info);
-        containerEntity.nameTag = "Edit History";
 
         const containerId = containerEntity.id;
         tempData.assignedContainerEntityId = containerId;
+        let hasOpenedContainer = false;
 
         const intervalId = system.runInterval(() => {
             if (!customPlayer.isValid ||
                 !containerEntity.isValid
             ) {
                 tempData.hasContainerOpen = false;
-                if (containerEntity.isValid) try { containerEntity.remove(); } catch { }
+                if (containerEntity.isValid) containerEntity.remove();
                 system.clearRun(intervalId);
                 return;
             }
 
             containerEntity.teleport(customPlayer.getHeadLocation());
+            if (tempData.hasContainerOpen) hasOpenedContainer = true;
 
             // Close container
             if (
                 customPlayer.dimension.id !== dimension.id ||
                 customPlayer.inputInfo.getButtonState(InputButton.Jump) === ButtonState.Pressed ||
                 customPlayer.inputInfo.getButtonState(InputButton.Sneak) === ButtonState.Pressed ||
-                VectorMath.magnitude(customPlayer.inputInfo.getMovementVector()) > 1e-6
+                VectorMath.magnitude(customPlayer.inputInfo.getMovementVector()) > 1e-6 ||
+                (hasOpenedContainer && !tempData.hasContainerOpen)
             ) {
                 try { containerEntity.remove(); } catch { }
                 system.clearRun(intervalId);
-                if (!tempData.hasContainerOpen) AddonMessage.send(customPlayer, "Cancelled", MessageType.Warning);
-                else tempData.hasContainerOpen = false;
+                if (!hasOpenedContainer) {
+                    AddonMessage.send(customPlayer, "Cancelled", MessageType.Warning);
+                } else {
+                    AddonMessage.send(customPlayer, "Finished", MessageType.Warning);
+                }
+
+                tempData.hasContainerOpen = false;
                 return;
             }
         });

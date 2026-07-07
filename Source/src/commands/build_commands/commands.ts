@@ -20,6 +20,14 @@ export const buildCommands = {
         },
         callbackFunction: BuildFunctions.runHistoryCommand
     },
+    editHistoryCommand: {
+        customCommand: {
+            name: `${PACK_ID}:edit_history`,
+            description: "Open the edit history menu.",
+            permissionLevel: CommandPermissionLevel.Admin
+        },
+        callbackFunction: BuildFunctions.runHistoryCommand
+    },
     clearEditHistoryCommand: {
         customCommand: {
             name: `${PACK_ID}:clear_edit_history`,

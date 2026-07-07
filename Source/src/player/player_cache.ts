@@ -1,4 +1,4 @@
-import { InputPermissionCategory, Player, system, world } from "@minecraft/server";
+import { EntitySwingSource, InputPermissionCategory, Player, system, world } from "@minecraft/server";
 import { createCustomPlayer } from "./player_constructor";
 import { CustomPlayer, CustomPlayerCache } from "../types";
 import { Debug } from "../debug";
@@ -34,6 +34,16 @@ export class PlayerCache extends Debug {
                 }
             }
         }, 1);
+
+        world.afterEvents.playerSwingStart.subscribe((event) => {
+            const player = event.player;
+            if (!player.isValid) return;
+            if (event.swingSource !== EntitySwingSource.Attack) return;
+            const customPlayer = this.get(player);
+            if (customPlayer === undefined) return;
+            if (customPlayer._tempData.hasContainerOpen) customPlayer._tempData.hasContainerOpen = false;
+        });
+
         this.initialised = true;
     }
 

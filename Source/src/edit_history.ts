@@ -1,4 +1,4 @@
-import { BlockVolume, EntityComponentTypes, ItemStack, system } from "@minecraft/server";
+import { BlockVolume, EntityComponentTypes, ItemStack, RawMessage, system } from "@minecraft/server";
 import { CustomEntity, CustomPlayer, EditInfo } from "./types";
 import { VolumeMemory } from "./volume_memory";
 import { Debug } from "./debug";
@@ -6,50 +6,67 @@ import { AddonMessage, MessageType } from "./message_formatting";
 import { EntityUtilities } from "./utilities/entity";
 
 export class EditHistory extends Debug {
-    private static MAX_EDIT_HISTORY_ITEMS = 27;
+    private static MAX_EDIT_HISTORY_ITEMS = 9;
 
     public static undo(customPlayer: CustomPlayer) {
-        const editHistoryArray = Array.from(customPlayer._persistentData.editHistory);
-        let mostRecentEditInfo: EditInfo | undefined = undefined;
-        for (let i = editHistoryArray.length - 1; i >= 0; i--) {
-            const editInfo = editHistoryArray[i];
-            if (editInfo.reversed) continue;
-            mostRecentEditInfo = editInfo;
-            break;
-        }
-        if (mostRecentEditInfo === undefined) {
-            AddonMessage.send(customPlayer, "Nothing to undo", MessageType.Error);
-            return;
-        }
-        this.toggleEdit(customPlayer, mostRecentEditInfo);
+        const editInfo = this.getEditInfoFromUndoOrRedo(customPlayer, "undo");
+        if (editInfo === undefined) return;
+        this.toggleEdit(customPlayer, editInfo);
+        AddonMessage.send(customPlayer, `Undo successful`, MessageType.Info);
     }
 
     public static redo(customPlayer: CustomPlayer) {
-        const editHistoryArray = Array.from(customPlayer._persistentData.editHistory);
-        let mostRecentEditInfo: EditInfo | undefined = undefined;
-        for (let i = 0; i < editHistoryArray.length; i++) {
-            const editInfo = editHistoryArray[i];
-            if (!editInfo.reversed) continue;
-            mostRecentEditInfo = editInfo;
-            break;
-        }
-        if (mostRecentEditInfo === undefined) {
-            AddonMessage.send(customPlayer, "Nothing to redo", MessageType.Error);
-            return;
-        }
-        this.toggleEdit(customPlayer, mostRecentEditInfo);
+        const editInfo = this.getEditInfoFromUndoOrRedo(customPlayer, "redo");
+        if (editInfo === undefined) return;
+        this.toggleEdit(customPlayer, editInfo);
+        AddonMessage.send(customPlayer, `Redo successful`, MessageType.Info);
     }
 
-    public static add(customPlayer: CustomPlayer, volume: BlockVolume, title: string) {
+    private static getEditInfoFromUndoOrRedo(customPlayer: CustomPlayer, action: "undo" | "redo"): EditInfo | undefined {
+        const editHistoryArray = Array.from(customPlayer._persistentData.editHistory);
+        let i = action === "undo" ? editHistoryArray.length - 1 : 0;
+        let conditionExpression = action === "undo" ? () => i >= 0 : () => i < editHistoryArray.length;
+        let endExpression = action === "undo" ? () => i-- : () => i++;
+        const targetBoolean = action === "undo" ? false : true;
+
+        let selectedEditInfo: EditInfo | undefined = undefined;
+        for (i; conditionExpression(); endExpression()) {
+            const editInfo = editHistoryArray[i];
+            if (editInfo.reversed !== targetBoolean) continue;
+            selectedEditInfo = editInfo;
+            break;
+        }
+        if (selectedEditInfo === undefined) AddonMessage.send(customPlayer, `Nothing to ${action}`, MessageType.Error);
+        return selectedEditInfo;
+    }
+
+    public static add(customPlayer: CustomPlayer, volume: BlockVolume, actionName: string, blockTypeId: string) {
+        const title = this.getTitle(actionName, blockTypeId, volume);
+        const description = this.getDescription(actionName, blockTypeId, volume);
         const editInfo: EditInfo = {
             reversed: false,
             title: title,
-            description: "guh?",
+            description: description,
             volumeStateId: VolumeMemory.saveVolumeState(customPlayer.dimension, volume)
         };
         customPlayer._persistentData.editHistory.add(editInfo);
         this.removeOverflow(customPlayer);
         customPlayer._savePersistentData();
+    }
+
+    private static getTitle(actionName: string, blockTypeId: string, volume: BlockVolume) {
+        let blockName = blockTypeId.split(":").length > 0 ? blockTypeId.split(":")[1] : blockTypeId;
+        blockName = blockName[0].toUpperCase() + blockName.slice(1);
+        blockName = blockName.replaceAll("_", " ");
+        const preposition = actionName === "Set" ? "to" : "with";
+        // const title = `§r${actionName} ${volume.getCapacity()} blocks ${preposition} ${blockName}`;
+        const title = `§r§f${actionName} ${preposition} ${blockName}`;
+        return title;
+    }
+
+    private static getDescription(actionName: string, blockTypeId: string, volume: BlockVolume) {
+        const description = `§7From (${Object.values(volume.getMin()).join(", ")})\n§7To (${Object.values(volume.getMax()).join(", ")})`;
+        return description;
     }
 
     public static remove(customPlayer: CustomPlayer, editInfoOrVolumeStateId: EditInfo | string) {
@@ -99,6 +116,7 @@ export class EditHistory extends Debug {
         for (const editInfo of customPlayer._persistentData.editHistory) {
             this.remove(customPlayer, editInfo);
         }
+        AddonMessage.send(customPlayer, "Edit history cleared", MessageType.Info);
     }
 
     public static editHistoryMenu(customPlayer: CustomPlayer, customEntity: CustomEntity) {
@@ -109,12 +127,15 @@ export class EditHistory extends Debug {
 
         const editHistoryArray = Array.from(customPlayer._persistentData.editHistory);
 
+        // TODO: Improve this
+        // Remove any blocks added to player inventory
         for (let i = 0; i < container.size; i++) {
             if (i >= editHistoryArray.length) break;
             const editInfo = editHistoryArray[i];
             const itemTypeId = !editInfo.reversed ? "minecraft:lime_concrete" : "minecraft:orange_concrete";
             const itemStack = new ItemStack(itemTypeId);
             itemStack.nameTag = editInfo.title;
+            itemStack.setLore(editInfo.description.split("\n"));
             container.setItem(i, itemStack);
         }
 
@@ -129,10 +150,45 @@ export class EditHistory extends Debug {
                 let itemStack = container.getItem(i);
                 if (itemStack !== undefined) continue;
                 const editInfo = (editHistoryArray[i] as EditInfo);
+                const undoing = !editInfo.reversed;
+                // if (!undoing) this.toggleEdit(customPlayer, editInfo);
+
+                let editsToToggle = [];
+
+                for (let j = i; j < editHistoryArray.length; j++) {
+                    if (j === i) continue;
+                    const editInfo = editHistoryArray[j];
+                    // If redoing, don't redo things before it
+                    if (!undoing && j < i && editInfo.reversed) continue;
+
+
+
+
+                    // If undoing, first undo everything after
+
+                    if (j < i && !editInfo.reversed) continue; // Make everything before not undone
+                    if (j > i && editInfo.reversed) continue; // Undo everything after
+                    //if (editInfo.reversed && undoing) continue;
+                    editsToToggle.unshift(editInfo);
+                }
+
+
+                for (const editInfo of editsToToggle) {
+                    console.warn("toggled", editInfo.title)
+                    this.toggleEdit(customPlayer, editInfo);
+                }
+
                 this.toggleEdit(customPlayer, editInfo);
+
+                for (const editInfo of editsToToggle.reverse()) {
+                    this.toggleEdit(customPlayer, editInfo);
+                }
+
+
                 const itemTypeId = !editInfo.reversed ? "minecraft:lime_concrete" : "minecraft:orange_concrete";
                 itemStack = new ItemStack(itemTypeId);
                 itemStack.nameTag = editInfo.title;
+                itemStack.setLore(editInfo.description.split("\n"));
                 container.setItem(i, itemStack);
                 //  system.clearRun(intervalId);
                 const cursorInventory = customPlayer.getComponent(EntityComponentTypes.CursorInventory);
