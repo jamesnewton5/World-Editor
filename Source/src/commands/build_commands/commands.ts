@@ -110,13 +110,13 @@ export const buildCommands = {
         },
         callbackFunction: BuildFunctions.runReplaceCommand
     },
-    maskCommand: {
-        customCommand: {
-            name: `${PACK_ID}:mask`,
-            description: "Select a block to use as a mask for operations.",
-            permissionLevel: CommandPermissionLevel.Admin,
-            optionalParameters: [{ type: CustomCommandParamType.BlockType, name: "blockType" }]
-        },
-        callbackFunction: BuildFunctions.runMaskCommand
-    }
+    // maskCommand: {
+    //     customCommand: {
+    //         name: `${PACK_ID}:mask`,
+    //         description: "Select a block to use as a mask for operations.",
+    //         permissionLevel: CommandPermissionLevel.Admin,
+    //         optionalParameters: [{ type: CustomCommandParamType.BlockType, name: "blockType" }]
+    //     },
+    //     callbackFunction: BuildFunctions.runMaskCommand
+    // }
 }

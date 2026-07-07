@@ -52,7 +52,7 @@ export class BuildTools {
         if (customPlayer === undefined) return;
         system.runTimeout(() => {
             if (!customPlayer.isValid) return;
-            const aimingAtLocation = getBlockLocationFromRay(customPlayer.dimension, customPlayer.getHeadLocation(), customPlayer.getViewDirection(), 48);
+            const aimingAtLocation = getBlockLocationFromRay(customPlayer.dimension, customPlayer.getHeadLocation(), customPlayer.getViewDirection(), 64);
             if (aimingAtLocation === undefined) return;
             this.setPosition(customPlayer, propertyKey, aimingAtLocation);
         }, 1);
@@ -85,7 +85,13 @@ export class BuildTools {
             AddonMessage.send(customPlayer, "Make a selection", MessageType.Error);
             return undefined;
         }
-        return new BlockVolume(position1, position2);
+        const volume = new BlockVolume(position1, position2);
+        const size = volume.getSpan();
+        if (size.x > 64 || size.z > 64 || size.y > 384) {
+            AddonMessage.send(customPlayer, "Error: Selection exceeds the maximum size:\n   (64 x 384 x 64)", MessageType.Error);
+            return undefined;
+        }
+        return volume;
     }
 
     public static async copy(customPlayer: CustomPlayer) {
