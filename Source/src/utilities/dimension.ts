@@ -14,16 +14,17 @@ export function getSolidBlockHitLocationFromRay(dimension: Dimension, rayOrigin:
     const block = raycastResult.block;
     const blockLocation = block.location;
 
-    let localHitLocation = raycastResult.faceLocation;
+    const localHitLocation = raycastResult.faceLocation;
+
     switch (raycastResult.face) {
         case Direction.East:
-            localHitLocation.x += 1;
+            if (localHitLocation.x === 0) localHitLocation.x = 1;
             break;
         case Direction.Up:
-            localHitLocation.y = +1;
+            if (localHitLocation.y === 0) localHitLocation.y = 1;
             break;
         case Direction.South:
-            localHitLocation.z = +1;
+            if (localHitLocation.z === 0) localHitLocation.z = 1;
             break;
         default:
             break;

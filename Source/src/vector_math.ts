@@ -76,6 +76,7 @@ export class VectorMath {
 		vector.x = Math.floor(vector.x);
 		vector.y = Math.floor(vector.y);
 		vector.z = Math.floor(vector.z);
+		return vector;
 	}
 
 	public static getFlatPerpendicularVector(vector: Vector3, direction: "Left" | "Right") {

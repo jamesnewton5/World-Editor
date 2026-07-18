@@ -4,7 +4,7 @@ import { PlayerCache } from "./player/player_cache";
 import { ClipboardInfo, CustomPlayer } from "./types";
 import { TOOL_TYPE_ID } from "./data";
 import { VectorMath } from "./vector_math";
-import { DimensionUtilities, getBlockLocationFromRay } from "./utilities/dimension";
+import { DimensionUtilities, getBlockLocationFromRay, getSolidBlockHitLocationFromRay } from "./utilities/dimension";
 import { VFX } from "./utilities/vfx";
 import { VolumeMemory } from "./volume_memory";
 import { EditHistory } from "./edit_history";
@@ -52,6 +52,8 @@ export class BuildTools {
         if (customPlayer === undefined) return;
         system.runTimeout(() => {
             if (!customPlayer.isValid) return;
+            const blockLocation = getSolidBlockHitLocationFromRay(customPlayer.dimension, customPlayer.getHeadLocation(), customPlayer.getViewDirection());
+            if (blockLocation !== undefined) customPlayer.dimension.spawnParticle("minecraft:blue_flame_particle", blockLocation)
             const aimingAtLocation = getBlockLocationFromRay(customPlayer.dimension, customPlayer.getHeadLocation(), customPlayer.getViewDirection(), 64);
             if (aimingAtLocation === undefined) return;
             this.setPosition(customPlayer, propertyKey, aimingAtLocation);
@@ -107,7 +109,7 @@ export class BuildTools {
         structureManager.createFromWorld(structureIdentifier, dimension, volume.getMin(), volume.getMax(), { saveMode: StructureSaveMode.Memory });
         const clipboardInfo: ClipboardInfo = {
             structureId: structureIdentifier,
-            offset: VectorMath.subtract(volume.getMin(), customPlayer.location),
+            offset: VectorMath.subtract(volume.getMin(), VectorMath.floor(customPlayer.location)),
             size: volume.getSpan()
         };
         customPlayer._persistentData.clipboard = clipboardInfo;
@@ -120,7 +122,7 @@ export class BuildTools {
             AddonMessage.send(customPlayer, "Clipboard is empty", MessageType.Error);
             return;
         }
-        const origin = VectorMath.add(customPlayer.location, clipboardInfo.offset);
+        const origin = VectorMath.add(VectorMath.floor(customPlayer.location), clipboardInfo.offset);
         const structureManager = world.structureManager;
         const structure = structureManager.get(clipboardInfo.structureId);
         if (structure === undefined) {
