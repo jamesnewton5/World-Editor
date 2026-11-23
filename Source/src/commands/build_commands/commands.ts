@@ -29,6 +29,15 @@ export const buildCommands = {
         },
         callbackFunction: BuildFunctions.runSaveStructureCommand
     },
+    placeStructureCommand: {
+        customCommand: {
+            name: `${PACK_ID}:place_structure`,
+            description: "Place a structure file stored on the world at your current location.",
+            permissionLevel: CommandPermissionLevel.Admin,
+            mandatoryParameters: [{ type: CustomCommandParamType.String, name: "structureName" }]
+        },
+        callbackFunction: BuildFunctions.runPlaceStructureCommand
+    },
     pasteCommand: {
         customCommand: {
             name: `${PACK_ID}:paste`,

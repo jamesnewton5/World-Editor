@@ -1,4 +1,4 @@
-import { world, system, BlockVolume, Direction, Vector3, Dimension, BlockType, EntitySwingSource, Player, StructureSaveMode } from "@minecraft/server";
+import { world, system, BlockVolume, Direction, Vector3, Dimension, BlockType, EntitySwingSource, Player, StructureSaveMode, Structure } from "@minecraft/server";
 import { AddonMessage, MessageType } from "./message_formatting";
 import { PlayerCache } from "./player/player_cache";
 import { ClipboardInfo, CustomPlayer } from "./types";
@@ -62,7 +62,10 @@ export class BuildTools {
 
     public static setPosition(customPlayer: CustomPlayer, propertyKey: "position1" | "position2", location: Vector3 | undefined) {
         const tempData = customPlayer._tempData;
-        if (location !== undefined) VectorMath.floor(location);
+        if (location !== undefined) {
+            location = { x: location.x, y: location.y + 1e-2, z: location.z };
+            VectorMath.floor(location);
+        }
         tempData[propertyKey] = location;
         if (location === undefined) return;
         // Highlight
@@ -101,6 +104,54 @@ export class BuildTools {
         return (size.x <= 64 && size.z <= 64 && size.y <= 384);
     }
 
+    public static async placeStructure(customPlayer: CustomPlayer, structureName: string) {
+        const structureIdentifier = structureName.includes(":") ? structureName : `mystructure:${structureName}`;
+        const origin = VectorMath.floor(customPlayer.location);
+        const structureManager = world.structureManager;
+        const structure = structureManager.get(structureIdentifier);
+        if (structure === undefined) {
+            this.placeStruceLarge(customPlayer, origin, structureIdentifier);
+        } else {
+            this.placeStruceSmall(customPlayer, origin, structure);
+        }
+    }
+
+    private static async placeStruceLarge(customPlayer: CustomPlayer, location: Vector3, originalStructureIdentifier: string) {
+        let x = 0;
+        let z = 0;
+
+        const structureManager = world.structureManager;
+
+        while (true) {
+            const structureIdentifier = originalStructureIdentifier + "_" + String(x) + "_" + String(z);
+            const structure = structureManager.get(structureIdentifier) ?? structureManager.get(structureIdentifier + `'`); // Structure conversion tool I was using added ' to the end
+            if (structure === undefined) {
+                if (z === 0) break;
+                x++;
+                z = 0;
+                continue;
+            }
+            z++;
+
+            const placementLocation = {
+                x: location.x + x * 64,
+                y: location.y,
+                z: location.z + z * 64
+            };
+
+            await this.placeStruceSmall(customPlayer, placementLocation, structure)
+        }
+
+        if (x === 0 && z === 0) AddonMessage.send(customPlayer, `Could not find structure "${originalStructureIdentifier}"`, MessageType.Error);
+    }
+
+    private static async placeStruceSmall(customPlayer: CustomPlayer, location: Vector3, structure: Structure) {
+        const volume = new BlockVolume(location, VectorMath.subtract(VectorMath.add(location, structure.size), 1));
+        await loadVolume(customPlayer.dimension, volume);
+        EditHistory.add(customPlayer, volume, "Placed Structure");
+        world.structureManager.place(structure, customPlayer.dimension, location);
+    }
+
     public static async saveStructure(customPlayer: CustomPlayer, structureName: string) {
         const volume = this.getSelectedVolume(customPlayer, true);
         if (volume === undefined) return;
@@ -117,7 +168,9 @@ export class BuildTools {
         const volumeChunks = this.splitVolumeIntoChunksOfWidth(volume, 64);
         for (let i = 0; i < volumeChunks.length; i++) {
             const volumeChunk = volumeChunks[i];
-            const identifier = structureIdentifier + "_" + String(i);
+            const x = (volumeChunk as any).x;
+            const z = (volumeChunk as any).z;
+            const identifier = structureIdentifier + "_" + String(x) + "_" + String(z);
             await this.saveStructureSmall(customPlayer, volumeChunk, identifier);
         }
     }
@@ -146,6 +199,8 @@ export class BuildTools {
                     { x: endX, y: max.y, z: endZ }
                 );
                 volumes.push(newVolume);
+                (newVolume as any).x = x;
+                (newVolume as any).z = z;
             }
         }
 
