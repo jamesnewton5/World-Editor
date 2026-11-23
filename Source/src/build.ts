@@ -96,6 +96,20 @@ export class BuildTools {
         return volume;
     }
 
+    public static async saveStructure(customPlayer: CustomPlayer, structureName: string) {
+        const volume = this.getSelectedVolume(customPlayer);
+        if (volume === undefined) return;
+        const dimension = customPlayer.dimension;
+        await loadVolume(dimension, volume);
+        const structureIdentifier = structureName.includes(":") ? structureName : `mystructure:${structureName}`;
+        const structureManager = world.structureManager;
+        if (structureManager.get(structureIdentifier)) {
+            try { structureManager.delete(structureIdentifier); } catch { }
+        }
+        structureManager.createFromWorld(structureIdentifier, dimension, volume.getMin(), volume.getMax(), { saveMode: StructureSaveMode.World });
+        AddonMessage.send(customPlayer, `Saved structure as "${structureIdentifier}"`, MessageType.Info);
+    }
+
     public static async copy(customPlayer: CustomPlayer) {
         const volume = this.getSelectedVolume(customPlayer);
         if (volume === undefined) return;

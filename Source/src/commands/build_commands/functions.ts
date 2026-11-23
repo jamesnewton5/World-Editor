@@ -158,6 +158,9 @@ export const BuildFunctions = new Proxy({
     runCopyCommand: function (customPlayer: CustomPlayer) {
         BuildTools.copy(customPlayer);
     },
+    runSaveStructureCommand: function (customPlayer: CustomPlayer, structureName: string) {
+        BuildTools.saveStructure(customPlayer, structureName);
+    },
     runPasteCommand: function (customPlayer: CustomPlayer) {
         BuildTools.paste(customPlayer);
     },

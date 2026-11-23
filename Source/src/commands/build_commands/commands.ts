@@ -20,6 +20,15 @@ export const buildCommands = {
         },
         callbackFunction: BuildFunctions.runCopyCommand
     },
+    saveStructureCommand: {
+        customCommand: {
+            name: `${PACK_ID}:save_structure`,
+            description: "Save your current selection to disk.",
+            permissionLevel: CommandPermissionLevel.Admin,
+            mandatoryParameters: [{ type: CustomCommandParamType.String, name: "structureName" }]
+        },
+        callbackFunction: BuildFunctions.runSaveStructureCommand
+    },
     pasteCommand: {
         customCommand: {
             name: `${PACK_ID}:paste`,
