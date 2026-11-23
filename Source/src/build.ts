@@ -80,7 +80,7 @@ export class BuildTools {
         }
     }
 
-    public static getSelectedVolume(customPlayer: CustomPlayer): BlockVolume | undefined {
+    public static getSelectedVolume(customPlayer: CustomPlayer, allowOversized = false): BlockVolume | undefined {
         const position1 = customPlayer._tempData.position1;
         const position2 = customPlayer._tempData.position2;
         if (position1 === undefined || position2 === undefined) {
@@ -89,24 +89,76 @@ export class BuildTools {
         }
         const volume = new BlockVolume(position1, position2);
         const size = volume.getSpan();
-        if (size.x > 64 || size.z > 64 || size.y > 384) {
+        if (allowOversized) return volume;
+        if (!this.isSizeWithinAllowedStructureBounds(size)) {
             AddonMessage.send(customPlayer, "Error: Selection exceeds the maximum size:\n   (64 x 384 x 64)", MessageType.Error);
             return undefined;
         }
         return volume;
     }
 
+    private static isSizeWithinAllowedStructureBounds(size: Vector3): boolean {
+        return (size.x <= 64 && size.z <= 64 && size.y <= 384);
+    }
+
     public static async saveStructure(customPlayer: CustomPlayer, structureName: string) {
-        const volume = this.getSelectedVolume(customPlayer);
+        const volume = this.getSelectedVolume(customPlayer, true);
         if (volume === undefined) return;
-        const dimension = customPlayer.dimension;
-        await loadVolume(dimension, volume);
         const structureIdentifier = structureName.includes(":") ? structureName : `mystructure:${structureName}`;
+        const size = volume.getSpan();
+        if (this.isSizeWithinAllowedStructureBounds(size)) {
+            this.saveStructureSmall(customPlayer, volume, structureIdentifier);
+        } else {
+            this.saveStructureLarge(customPlayer, volume, structureIdentifier);
+        }
+    }
+
+    private static async saveStructureLarge(customPlayer: CustomPlayer, volume: BlockVolume, structureIdentifier: string) {
+        const volumeChunks = this.splitVolumeIntoChunksOfWidth(volume, 64);
+        for (let i = 0; i < volumeChunks.length; i++) {
+            const volumeChunk = volumeChunks[i];
+            const identifier = structureIdentifier + "_" + String(i);
+            await this.saveStructureSmall(customPlayer, volumeChunk, identifier);
+        }
+    }
+
+    private static splitVolumeIntoChunksOfWidth(volume: BlockVolume, width: number): BlockVolume[] {
+        const size = volume.getSpan();
+
+
+        const min = volume.getMin();
+        const max = volume.getMax();
+
+        const volumes: BlockVolume[] = [];
+
+        for (let x = 0; x < Math.ceil(size.x / width); x++) {
+
+            const startX = min.x + width * x;
+            const endX = Math.max(Math.min(min.x + width * (x + 1) - 1, max.x), startX);
+
+            for (let z = 0; z < Math.ceil(size.z / width); z++) {
+
+                const startZ = min.z + width * z;
+                const endZ = Math.max(Math.min(min.z + width * (z + 1) - 1, max.z), startZ);
+
+                const newVolume = new BlockVolume(
+                    { x: startX, y: min.y, z: startZ },
+                    { x: endX, y: max.y, z: endZ }
+                );
+                volumes.push(newVolume);
+            }
+        }
+
+        return volumes;
+    }
+
+    private static async saveStructureSmall(customPlayer: CustomPlayer, volume: BlockVolume, structureIdentifier: string) {
+        await loadVolume(customPlayer.dimension, volume);
         const structureManager = world.structureManager;
         if (structureManager.get(structureIdentifier)) {
             try { structureManager.delete(structureIdentifier); } catch { }
         }
-        structureManager.createFromWorld(structureIdentifier, dimension, volume.getMin(), volume.getMax(), { saveMode: StructureSaveMode.World });
+        structureManager.createFromWorld(structureIdentifier, customPlayer.dimension, volume.getMin(), volume.getMax(), { saveMode: StructureSaveMode.World });
         AddonMessage.send(customPlayer, `Saved structure as "${structureIdentifier}"`, MessageType.Info);
     }
 
